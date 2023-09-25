@@ -1,15 +1,15 @@
 #include <Wire.h>
-#include "IRLocator360.h"
-#include <Adafruit_Sensor.h>
-#include <Adafruit_BNO055.h>
+//#include "IRLocator360.h"
+//#include <Adafruit_Sensor.h>
+//#include <Adafruit_BNO055.h>
 
 #define pi 3.14159265358
 
-Adafruit_BNO055 bno = Adafruit_BNO055(55, 0x28);
-IRLocator360 IR;
+//Adafruit_BNO055 bno = Adafruit_BNO055(55, 0x28);
+//IRLocator360 IR;
 
 int M1D1 = 0, M1D2 = 1, M2D1 = 2 , M2D2 = 3, M3D1 = 4, M3D2 = 5, M4D1 = 6, M4D2 = 7;
-double dir1, dir2, dir3, dir4, pow1, pow2, pow3, pow4, vel=300;
+double dir1, dir2, dir3, dir4, pow1, pow2, pow3, pow4, vel=175;
 int IMUM;
 
 
@@ -307,9 +307,9 @@ void setup() {
 
   Serial.begin(115200);
 
-  Wire.begin();
-  IR.sensorInitialization();  
-  bno.begin();
+  //Wire.begin();
+  //IR.sensorInitialization();  
+  //bno.begin();
   delay(100);
 
   pinMode( M1D1 , OUTPUT );
@@ -357,7 +357,7 @@ void loop() {
   delay(1000);
   stop( 100 );*/
 
-  
+*  
   /*delay(1000);
   stop(10);
   mover(180);
