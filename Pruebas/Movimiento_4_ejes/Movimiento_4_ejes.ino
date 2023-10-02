@@ -1,15 +1,15 @@
 #include <Wire.h>
 //#include "IRLocator360.h"
-//#include <Adafruit_Sensor.h>
-//#include <Adafruit_BNO055.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BNO055.h>
 
 #define pi 3.14159265358
 
-//Adafruit_BNO055 bno = Adafruit_BNO055(55, 0x28);
+Adafruit_BNO055 bno = Adafruit_BNO055(55, 0x28);
 //IRLocator360 IR;
 
 int M1D1 = 0, M1D2 = 1, M2D1 = 2 , M2D2 = 3, M3D1 = 4, M3D2 = 5, M4D1 = 6, M4D2 = 7;
-double dir1, dir2, dir3, dir4, pow1, pow2, pow3, pow4, vel=175;
+double dir1, dir2, dir3, dir4, pow1, pow2, pow3, pow4, vel=70;
 int IMUM;
 
 
@@ -18,13 +18,13 @@ void motor1( int dir, int pow){      ////////// mover los motores indicando dire
     if( dir == 1){
 
       analogWrite(M1D1, pow);
-      analogWrite(M1D2, 0);
+      analogWrite(M1D2, 1);
 
     }
 
     if( dir == -1){
 
-      analogWrite(M1D1, 0);
+      analogWrite(M1D1, 1);
       analogWrite(M1D2, pow);
 
     }
@@ -46,12 +46,12 @@ void motor2( int dir, int pow){
 
       
       analogWrite(M2D1, pow);
-      analogWrite(M2D2, 0);
+      analogWrite(M2D2, 1);
 
     }
 
     if( dir == -1){
-      analogWrite(M2D1, 0);
+      analogWrite(M2D1, 1);
       analogWrite(M2D2, pow);
 
     }
@@ -72,13 +72,13 @@ void motor3( int dir, int pow){
 
       
       analogWrite(M3D1, pow);
-      analogWrite(M3D2, 0);
+      analogWrite(M3D2, 1);
 
     }
 
     if( dir == -1){
 
-      analogWrite(M3D1, 0);
+      analogWrite(M3D1, 1);
       analogWrite(M3D2, pow);
 
     }
@@ -100,13 +100,13 @@ void motor4( int dir, int pow){
 
       
       analogWrite(M4D1, pow);
-      analogWrite(M4D2, 0);
+      analogWrite(M4D2, 1);
 
     }
 
     if( dir == -1){
 
-      analogWrite(M4D1, 0);
+      analogWrite(M4D1, 1);
       analogWrite(M4D2, pow);
 
     }
@@ -130,12 +130,12 @@ void motores(int num, int pot){
 
 
       analogWrite(M1D1, pot);
-      analogWrite(M1D2, 0);
+      analogWrite(M1D2, 1);
 
     }
     else{
 
-      analogWrite(M1D1, 0);
+      analogWrite(M1D1, 1);
       analogWrite(M1D2, -pot);
       
     }
@@ -147,12 +147,12 @@ void motores(int num, int pot){
     if( pot > 0){
 
       analogWrite(M2D1, pot);
-      analogWrite(M2D2, 0);
+      analogWrite(M2D2, 1);
 
     }
     else{
 
-      analogWrite(M2D1, 0);
+      analogWrite(M2D1, 1);
       analogWrite(M2D2, -pot);
       
     }
@@ -165,12 +165,12 @@ void motores(int num, int pot){
 
       
       analogWrite(M3D1, pot);
-      analogWrite(M3D2, 0);
+      analogWrite(M3D2, 1);
 
     }
     else{
 
-      analogWrite(M3D1, 0);
+      analogWrite(M3D1, 1);
       analogWrite(M3D2, -pot);
       
     }
@@ -183,12 +183,12 @@ void motores(int num, int pot){
 
       
       analogWrite(M4D1, pot);
-      analogWrite(M4D2, 0);
+      analogWrite(M4D2, 1);
 
     }
     else{
 
-      analogWrite(M4D1, 0);
+      analogWrite(M4D1, 1);
       analogWrite(M4D2, -pot);
       
     }
@@ -200,6 +200,7 @@ void motores(int num, int pot){
 
 void mover ( int angle){      ///////////Funcion para calcular en que direccion moverte con omnidireccional (angulo y tiempo)
 
+  if(angle != -1){
   dir1=angle-30;
   dir2=angle-150;
   dir3=angle+30;
@@ -214,13 +215,24 @@ void mover ( int angle){      ///////////Funcion para calcular en que direccion 
   pow2=vel*cos(dir2);
   pow3=vel*cos(dir3);
   pow4=vel*cos(dir4);
-  
+  }
+  else{
+    pow1 = 0;  
+    pow2 = 0;
+    pow3 = 0;
+    pow4 = 0;
+    }
   //Serial.println(" ");
 
  // Serial.println( IMUM );
 
  
-  IMUM = IMUM*500/180;
+  if(angle != -1){
+    IMUM = IMUM*130/180;
+  }
+  else{
+    IMUM = IMUM*360/90;
+  }
 
   pow1=pow1 + IMUM;
   pow2=pow2 - IMUM;
@@ -307,11 +319,12 @@ void setup() {
 
   Serial.begin(115200);
 
-  //Wire.begin();
+  Wire.begin();
   //IR.sensorInitialization();  
-  //bno.begin();
+  bno.begin();
   delay(100);
 
+  analogWriteFreq(50000);
   pinMode( M1D1 , OUTPUT );
   pinMode( M1D2 , OUTPUT );
   pinMode( M2D1 , OUTPUT );
@@ -320,31 +333,28 @@ void setup() {
   pinMode( M3D2 , OUTPUT );
   pinMode( M4D1 , OUTPUT );
   pinMode( M4D2 , OUTPUT );
-
+  analogWrite(M1D1, 0);
+  analogWrite(M1D2, 10);
+  analogWrite(M2D1, 0);
+  analogWrite(M2D2, 10);
+  analogWrite(M3D1, 0);
+  analogWrite(M3D2, 10);
+  analogWrite(M4D1, 0);
+  analogWrite(M4D2, 10);
+  delay(1500);
 
 
 }
 
 void loop() {
-  mover(0);
-  /*int pelota = IR.angleDirection1200hz();
+  mover(-1);
+  //int pelota = IR.angleDirection1200hz();
   sensors_event_t event;
   bno.getEvent(&event);
   IMUM = event.orientation.x;
-  if (IMUM > 180){
-    IMUM = IMUM - 360;
-  }
-  if (pelota < 360 && pelota >= 0){
-    mover(pelota);
-  }
-  else{
-    stop(1);
-  }
-
-
+  IMUM > 180 ? IMUM = IMUM - 360 : IMUM = IMUM;
   Serial.print(IMUM);
   Serial.print(" ");
-  Serial.println(pelota);*/
   /*magn=mag();
   double erro = getRawRotation() - Set;
   erro < 0 ? erro= 360.00+erro : erro=erro;
@@ -357,7 +367,7 @@ void loop() {
   delay(1000);
   stop( 100 );*/
 
-*  
+  
   /*delay(1000);
   stop(10);
   mover(180);
