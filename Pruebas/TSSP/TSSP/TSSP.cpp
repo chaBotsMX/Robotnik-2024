@@ -43,6 +43,7 @@ int TSSP::angleIR(){
     }
   }
   counter !=0 ? angle=atan2(x1,y1)/M_PI*180.00 : angle= -1; //Se saca la arcotangente de la suma de los vectores
+  angle != -1?  angle = angle+180 : angle = -1;
   return angle;  
 }
 

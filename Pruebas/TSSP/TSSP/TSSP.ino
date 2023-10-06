@@ -6,6 +6,8 @@ TSSP sensor_IR;
 
 void setup() {
   Serial.begin(115200);
+  Serial1.begin(74880);
+  pinMode(25, OUTPUT);
   readLimit=millis()+20;
 }
 
@@ -13,11 +15,15 @@ void loop() {
   if(millis()>readLimit){
     sensor_IR.sensorInfo();
     angle = sensor_IR.angleIR();
-    angle != -1?  angle = angle+180 : angle = -1;
-    angle = floor(angle/5);
-    angle = angle*5;
-    Serial.print(angle);
-    Serial.print(" ");
-    Serial.println(sensor_IR.intIR());
+
+    Serial.println(angle);
+
+  }
+  if(Serial1.available()){
+    Serial1.print(angle);
+    digitalWrite(25, HIGH);
+  }
+  else{
+    digitalWrite(25, LOW);
   }
 }
