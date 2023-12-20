@@ -17,7 +17,7 @@ void loop() {
     angle = sensor_IR.angleIR();
 
     Serial.println(angle);
-
+ 
   }
   if(Serial1.available()){
     Serial1.print(angle);

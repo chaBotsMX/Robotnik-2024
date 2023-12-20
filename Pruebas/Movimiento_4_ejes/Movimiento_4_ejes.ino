@@ -318,7 +318,7 @@ void stop ( int t){                  ///////////Frenar todos los motores (tiempo
 void setup() {
 
   Serial.begin(115200);
-
+  Serial1.begin(74880);
   Wire.begin();
   //IR.sensorInitialization();  
   bno.begin();
