@@ -199,6 +199,6 @@ void loop() {
     
   }
   counter !=0 ? angle=atan2(x1,y1)/M_PI*180.00 : angle= -1;
-  Serial.println(angle);
-  delay(500);
+  //Serial.println(angle);
+  delay(10);
 }
