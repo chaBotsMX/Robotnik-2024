@@ -308,7 +308,18 @@ void stop ( int t){                  ///////////Frenar todos los motores (tiempo
 void setup() {
 
   Serial.begin(115200);
+<<<<<<< HEAD
   Serial1.begin(74880);
+=======
+<<<<<<< HEAD
+  Serial1.begin(74880);
+  Wire.begin();
+  //IR.sensorInitialization();  
+  bno.begin();
+=======
+  Serial1.begin(77880);
+>>>>>>> 6cef51da26c14bddd40194683c833d03ab1d6ca8
+>>>>>>> 0666b8d433cf1ee2026bac28569598e386895a24
   delay(100);
   analogWriteResolution(8);
   analogWriteFreq(20000);
