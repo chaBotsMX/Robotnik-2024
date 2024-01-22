@@ -2,10 +2,10 @@
 
 int angle;
 int M1D1 = 0, M1D2 = 1, M2D1 = 3, M2D2 = 2, M3D1 = 5, M3D2 = 4, M4D1 = 6, M4D2 = 7;
-double dir1, dir2, dir3, dir4, pow1, pow2, pow3, pow4, vel=45;
+double dir1, dir2, dir3, dir4, pow1, pow2, pow3, pow4, vel=30;
 int IMUM;
-const size_t dataLength = 2;
-int data[dataLength] = {0,0};
+const size_t dataLength = 4;
+int data[dataLength] = {0,0,0,0};
 
 
 void motor1( int dir, int pow){      ////////// mover los motores indicando direcciÃ³n (1 fwd, -1 back) y cuanto poder asignarle
@@ -222,12 +222,6 @@ void mover ( int angle){      ///////////Funcion para calcular en que direccion 
  // Serial.println( IMUM );
 
  
-  if(angle != -1){
-    IMUM = IMUM*150/180;
-  }
-  else{
-    IMUM = IMUM*200/90;
-  }
 
   pow1=pow1 + IMUM;
   pow2=pow2 - IMUM;
@@ -314,7 +308,7 @@ void stop ( int t){                  ///////////Frenar todos los motores (tiempo
 void setup() {
 
   Serial.begin(115200);
-  Serial1.begin(77880);
+  Serial1.begin(74880);
   delay(100);
   analogWriteResolution(8);
   analogWriteFreq(20000);
@@ -345,11 +339,18 @@ void loop() {
   { 
     digitalWrite(25,HIGH);
     Serial1.readBytes((byte*)data, dataLength * sizeof(data[0]));
-    Serial.println(data[0]);
+    angle = data[0] + data[1];
+    IMUM  = data[2] + data[3];
+    Serial.println(IMUM);
+    if(IMUM >= 180)
+    {
+      IMUM = IMUM -360;
+    }
+    Serial.println(IMUM);
+      
   } 
   else
   {
-    mover(-1);  
+   mover(-1);  
   }
-
 }
