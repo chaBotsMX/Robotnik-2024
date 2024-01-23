@@ -8,17 +8,10 @@ void setup() {
     M5.begin();        
     M5.Power.begin();   
     M5.Lcd.setTextColor(GREEN);  
-    M5.Lcd.setTextSize(4);     
+    M5.Lcd.setTextSize(4);
+    M5.Lcd.println("Prueba");     
     Serial.begin(9600);
 }
-
-void loop() {
-  M5.update(); 
-  BotonA();
-  BotonB();
-  BotonC();
-}
-
 
 void BotonA(){
   if(M5.BtnA.wasPressed()){
@@ -39,7 +32,7 @@ void BotonA(){
   else if(estadoA==1){
     M5.Lcd.clear(BLACK);
     M5.Lcd.setCursor(50,90);
-    M5.Lcd.println("Jugandon't");
+    M5.Lcd.println("No jugando");
     delay(100);
   }
   delay(20);
@@ -58,13 +51,14 @@ void BotonB(){
   }
   M5.Lcd.setCursor(70,90);
   if (estadoB==0) {   
-    M5.Lcd.clear(BLACK);  
+    M5.Lcd.clear(BLACK);
+    M5.Lcd.setCursor(20,90);  
     M5.Lcd.println("Calibrando dirección");
     delay(100);
   }
   else if(estadoB==1){
     M5.Lcd.clear(BLACK);
-    M5.Lcd.setCursor(50,90);
+    M5.Lcd.setCursor(80,90);
     M5.Lcd.println(":)");
     delay(100);
   }
@@ -82,7 +76,7 @@ void BotonC(){
       estadoC=1;
     }
   }
-  M5.Lcd.setCursor(70,90);
+  M5.Lcd.setCursor(30,90);
   if (estadoC==0) {  
     M5.Lcd.clear(BLACK);  
     M5.Lcd.println("Calibrando pista");
@@ -90,9 +84,19 @@ void BotonC(){
   }
   else if(estadoC==1){
     M5.Lcd.clear(BLACK);
-    M5.Lcd.setCursor(50,90);
+    M5.Lcd.setCursor(80,90);
     M5.Lcd.println(":)");
     delay(100);
   }
   delay(20);
 }
+
+
+void loop() {
+  M5.update(); 
+  BotonA();
+  BotonB();
+  BotonC();
+}
+
+
