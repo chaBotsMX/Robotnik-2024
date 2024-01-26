@@ -1,38 +1,32 @@
 #include <M5Stack.h>
 
-int estadoA=0;
-int estadoB=0;
-int estadoC=0;
+int estado=0;
 
 void setup() {
     M5.begin();        
     M5.Power.begin();   
     M5.Lcd.setTextColor(GREEN);  
-    M5.Lcd.setTextSize(4);
-    M5.Lcd.println("Prueba");     
+    M5.Lcd.setTextSize(5);
+    M5.Lcd.println("Prueba");
+    delay(1000);     
     Serial.begin(9600);
 }
 
 void BotonA(){
   if(M5.BtnA.wasPressed()){
-    Serial.println(estadoA);
-    if(estadoA==1) {
-      estadoA=0;
+    Serial.println(estado);
+    if(estado==1) {
+      estado=0;
     }
-    else if(estadoA==0) {
-      estadoA=1;
+    else if(estado==0) {
+      estado=1;
     }
   }
   M5.Lcd.setCursor(70,90);
-  if (estadoA==0) { 
-    M5.Lcd.clear(BLACK);  
-    M5.Lcd.println("Jugando");
-    delay(100);
-  }
-  else if(estadoA==1){
+  if(estado==1){
     M5.Lcd.clear(BLACK);
-    M5.Lcd.setCursor(50,90);
-    M5.Lcd.println("No jugando");
+    M5.Lcd.setCursor(35,90);
+    M5.Lcd.println("Jugando");
     delay(100);
   }
   delay(20);
@@ -41,25 +35,18 @@ void BotonA(){
 
 void BotonB(){
   if(M5.BtnB.wasPressed()){
-    Serial.println(estadoB);
-    if(estadoB==1) {
-      estadoB=0;
+    if(estado==2) {
+      estado=0;
     }
-    else if(estadoB==0) {
-      estadoB=1;
+    else if(estado==0) {
+      estado=2;
     }
   }
   M5.Lcd.setCursor(70,90);
-  if (estadoB==0) {   
-    M5.Lcd.clear(BLACK);
-    M5.Lcd.setCursor(20,90);  
-    M5.Lcd.println("Calibrando dirección");
-    delay(100);
-  }
-  else if(estadoB==1){
-    M5.Lcd.clear(BLACK);
+  if(estado==2){
+   M5.Lcd.clear(BLACK);
     M5.Lcd.setCursor(80,90);
-    M5.Lcd.println(":)");
+    M5.Lcd.println("IMU");
     delay(100);
   }
   delay(20);
@@ -68,24 +55,18 @@ void BotonB(){
 
 void BotonC(){
   if(M5.BtnC.wasPressed()){
-    Serial.println(estadoC);
-    if(estadoC==1) {
-      estadoC=0;
+    if(estado==3) {
+      estado=0;
     }
-    else if(estadoC==0) {
-      estadoC=1;
+    else if(estado==0) {
+      estado=3;
     }
   }
   M5.Lcd.setCursor(30,90);
-  if (estadoC==0) {  
-    M5.Lcd.clear(BLACK);  
-    M5.Lcd.println("Calibrando pista");
-    delay(100);
-  }
-  else if(estadoC==1){
+  if(estado==3){
     M5.Lcd.clear(BLACK);
-    M5.Lcd.setCursor(80,90);
-    M5.Lcd.println(":)");
+    M5.Lcd.setCursor(70,90);
+    M5.Lcd.println("Pista");
     delay(100);
   }
   delay(20);
@@ -94,9 +75,22 @@ void BotonC(){
 
 void loop() {
   M5.update(); 
-  BotonA();
-  BotonB();
-  BotonC();
+  switch (estado) {
+    case 1:
+      BotonA();
+      break;
+    case 2:
+      BotonB();
+      break;
+    case 3:
+      BotonC();
+      break;
+    default:
+      M5.Lcd.clear(BLACK);
+      BotonA();
+      BotonB();
+      BotonC();
+      break;
 }
-
+}
 
