@@ -14,7 +14,7 @@ void setup() {
 
 void BotonA(){
   if(M5.BtnA.wasPressed()){
-    Serial.println(estado);
+    Serial.write(estado);
     if(estado==1) {
       estado=0;
     }
@@ -35,6 +35,7 @@ void BotonA(){
 
 void BotonB(){
   if(M5.BtnB.wasPressed()){
+    Serial.write(estado);
     if(estado==2) {
       estado=0;
     }
@@ -55,6 +56,7 @@ void BotonB(){
 
 void BotonC(){
   if(M5.BtnC.wasPressed()){
+    Serial.write(estado);    
     if(estado==3) {
       estado=0;
     }
