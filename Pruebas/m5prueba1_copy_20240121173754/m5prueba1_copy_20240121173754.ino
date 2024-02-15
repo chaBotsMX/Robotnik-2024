@@ -9,7 +9,11 @@ void setup() {
     M5.Lcd.setTextSize(5);
     M5.Lcd.println("Prueba");
     delay(1000);     
+<<<<<<< HEAD
     Serial.begin(115200);
+=======
+    Serial.begin(9600);
+>>>>>>> ce7576fd748d9db97f0f69f0d869eaaa0449a32c
 }
 
 void BotonA(){
@@ -94,4 +98,9 @@ void loop() {
       BotonC();
       break;
 }
+<<<<<<< HEAD
 }
+=======
+}
+
+>>>>>>> ce7576fd748d9db97f0f69f0d869eaaa0449a32c
