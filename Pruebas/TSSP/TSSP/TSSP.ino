@@ -18,9 +18,7 @@ void setup() {
 void loop() {
   if(millis()>readLimit){
     sensor_IR.sensorInfo();
-    angle = sensor_IR.angleIR();
-<<<<<<< HEAD
-  
+    angle = sensor_IR.angleIR();  
     if(angle >= 255 )
     {
     data[0] = 255;
@@ -45,27 +43,6 @@ void loop() {
     Serial.print(" ");
     Serial.println();
     }
-=======
-<<<<<<< HEAD
-    Serial.print(angle);
-    Serial.print(" ");
-    Serial.println();
- 
-=======
 
-    Serial.println(angle);
-
-  
-    if(angle >= 0 ){
-    angle = angle/2;
-    Serial1.write(angle);
-    digitalWrite(25, HIGH);
-    }
-    else {
-      Serial1.write(255);
-      digitalWrite(25, LOW);
-    }
->>>>>>> 6cef51da26c14bddd40194683c833d03ab1d6ca8
->>>>>>> 0666b8d433cf1ee2026bac28569598e386895a24
   }
 }  

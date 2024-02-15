@@ -1,19 +1,20 @@
 #include <M5Stack.h>
 
-int estado=1;
+int estado=0;
 
 void setup() {
-    M5.begin();        // Init M5Core. 
-    M5.Power.begin();  // Init Power module.  
-    M5.Lcd.setTextColor(GREEN);  // Set the font color to yellow. 
-    M5.Lcd.setTextSize(4);     // Set the font size. 
-    Serial.begin(9600);
+    M5.begin();        
+    M5.Power.begin();   
+    M5.Lcd.setTextColor(GREEN);  
+    M5.Lcd.setTextSize(5);
+    M5.Lcd.println("Prueba");
+    delay(1000);     
+    Serial.begin(115200);
 }
 
-void loop() {
-  M5.update();    //You need to add M5.update () to read the status of the keystroke. For details, please s((ee System. 
+void BotonA(){
   if(M5.BtnA.wasPressed()){
-    Serial.println(estado);
+    Serial.write(estado);
     if(estado==1) {
       estado=0;
     }
@@ -21,18 +22,76 @@ void loop() {
       estado=1;
     }
   }
-
   M5.Lcd.setCursor(70,90);
-  if (estado==0) {    //If the key is pressed. 
-    M5.Lcd.clear(BLACK);  
+  if(estado==1){
+    M5.Lcd.clear(BLACK);
+    M5.Lcd.setCursor(35,90);
     M5.Lcd.println("Jugando");
     delay(100);
   }
-  else if(estado==1){
-    M5.Lcd.clear(BLACK);
-    M5.Lcd.setCursor(50,90);
-    M5.Lcd.println("Jugandon't");
+  delay(20);
+}
+
+
+void BotonB(){
+  if(M5.BtnB.wasPressed()){
+    Serial.write(estado);
+    if(estado==2) {
+      estado=0;
+    }
+    else if(estado==0) {
+      estado=2;
+    }
+  }
+  M5.Lcd.setCursor(70,90);
+  if(estado==2){
+   M5.Lcd.clear(BLACK);
+    M5.Lcd.setCursor(80,90);
+    M5.Lcd.println("IMU");
     delay(100);
   }
   delay(20);
+}
+
+
+void BotonC(){
+  if(M5.BtnC.wasPressed()){
+    Serial.write(estado);    
+    if(estado==3) {
+      estado=0;
+    }
+    else if(estado==0) {
+      estado=3;
+    }
+  }
+  M5.Lcd.setCursor(30,90);
+  if(estado==3){
+    M5.Lcd.clear(BLACK);
+    M5.Lcd.setCursor(70,90);
+    M5.Lcd.println("Pista");
+    delay(100);
+  }
+  delay(20);
+}
+
+
+void loop() {
+  M5.update(); 
+  switch (estado) {
+    case 1:
+      BotonA();
+      break;
+    case 2:
+      BotonB();
+      break;
+    case 3:
+      BotonC();
+      break;
+    default:
+      M5.Lcd.clear(BLACK);
+      BotonA();
+      BotonB();
+      BotonC();
+      break;
+}
 }

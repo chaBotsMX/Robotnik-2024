@@ -1,12 +1,45 @@
+#include<elapsedMillis.h>
 #define pi 3.14159265358
 
+elapsedMillis uartMillis;
 int angle;
-int M1D1 = 0, M1D2 = 1, M2D1 = 3, M2D2 = 2, M3D1 = 5, M3D2 = 4, M4D1 = 6, M4D2 = 7;
-double dir1, dir2, dir3, dir4, pow1, pow2, pow3, pow4, vel=80;
-int IMUM;
-const size_t dataLength = 4;
-int data[dataLength] = {0,0,0,0};
+int M1D1 = 0, M1D2 = 1, M2D1 = 3, M2D2 = 2, M3D1 = 5, M3D2 = 4, M4D1 = 6, M4D2 = 7; //pines de los motores
+double dir1, dir2, dir3, dir4, pow1, pow2, pow3, pow4, vel = 125; //variables usadas para calcular pwm de cada motor
+double IMUM; //offset del imu
+int wait = 0;
+const size_t dataLength = 5;
+int data[5] = {0,0,0,0,0};
 
+
+//variables del pid
+unsigned long lastTime;
+double Input, Output, SetPoint;
+double errSum, LastErr;
+double kp, ki, kd;
+
+void compute()
+{ 
+  // tiempo desde el ultimo calculo
+  unsigned long now = millis();
+  double timeChange = (double)(now - lastTime);
+
+  //calcular error
+  double error = IMUM;
+  errSum += (error * timeChange);
+  double dErr = (error - LastErr) / timeChange;
+  //calcular output
+  Output = kp * error + ki * errSum + kd * dErr;
+  //guardar valores para siguientes calculos
+  LastErr= error;
+  lastTime = now;
+}
+
+void setTunings(double Kp, double Ki, double Kd)
+{
+  kp = Kp;
+  ki = Ki;
+  kd = Kd;
+}
 
 void motor1( int dir, int pow){      ////////// mover los motores indicando direcciÃ³n (1 fwd, -1 back) y cuanto poder asignarle
 
@@ -221,14 +254,14 @@ void mover ( int angle){      ///////////Funcion para calcular en que direccion 
 
  // Serial.println( IMUM );
 
- 
+  IMUM = IMUM * 1.05;
 
   pow1=pow1 + IMUM;
   pow2=pow2 - IMUM;
   pow3=pow3 - IMUM;
   pow4=pow4 + IMUM;
 
-  
+ 
 
   Serial.print(pow1);
   Serial.print(" ");
@@ -238,7 +271,7 @@ void mover ( int angle){      ///////////Funcion para calcular en que direccion 
   Serial.print(" ");
   Serial.print(pow4);
   Serial.println("\n");
-
+  
   if( pow1 < 0 ){
 
     pow1=min( abs(pow1), vel);
@@ -307,11 +340,11 @@ void stop ( int t){                  ///////////Frenar todos los motores (tiempo
 
 void setup() {
 
-  Serial.begin(115200);
-  Serial1.begin(74880);
-  delay(100);
-  analogWriteResolution(8);
-  analogWriteFreq(25000);
+  Serial.begin(115200); //comunicacion pc
+  Serial1.begin(115200); // comunicacion con placa principal
+  // tiempo para que los uart se inicialicen de forma correcta y se sincronicen
+  analogWriteResolution(8); //resolucion del pwm, 8 bytes, 0 a 255 
+  analogWriteFreq(25000); //frecuencia del pwm, idealmente ams de 20,000 pero no 20,0000
   pinMode( M1D1 , OUTPUT );
   pinMode( M1D2 , OUTPUT );
   pinMode( M2D1 , OUTPUT );
@@ -321,50 +354,55 @@ void setup() {
   pinMode( M4D1 , OUTPUT );
   pinMode( M4D2 , OUTPUT );
   pinMode(25 , OUTPUT);
+  //se arman los motores, se prenden al 100% por poco tiempo
   analogWrite(M1D1, 0);
-  analogWrite(M1D2, 10);
+  analogWrite(M1D2, 255);
   analogWrite(M2D1, 0);
-  analogWrite(M2D2, 10);
+  analogWrite(M2D2, 255);
   analogWrite(M3D1, 0);
-  analogWrite(M3D2, 10);
+  analogWrite(M3D2, 255);
   analogWrite(M4D1, 0);
-  analogWrite(M4D2, 10);
-  delay(1500);
+  analogWrite(M4D2, 255);
+  delay(1);
 
 
 }
 
 void loop() {
- if(Serial1.available() >= dataLength * sizeof(data[0]))
+  if(Serial1.available() >= dataLength * sizeof(data[0])) //si hay informacion nueva se lee y se mueve
   { 
-    digitalWrite(25,HIGH);
+    digitalWrite(25,HIGH); // se prende para debugear
     Serial1.readBytes((byte*)data, dataLength * sizeof(data[0]));
-    angle = data[0] * 2;
+    angle = data[0] * 2; //se interpreta la informacion
     IMUM  = data[2] + data[3];
-    //Serial.println(IMUM);
-    if(IMUM >= 180)
+    wait = data[4];
+    if(IMUM >= 180) //se calcula el offset del imu 
     {
       IMUM = IMUM -360;
     }
-    if(angle > 360){
-     // mover(-1);
+    uartMillis = 0; // se reinicia el contador para saber que si hubo informacion nueva
+  }
+  else{
+    digitalWrite(25,LOW); //apagamos led para debugear
+  }
+  if(uartMillis <100)// si hay informacion reciente se mueve al angulo de la informacion
+  {
+    if(angle >= 0 && angle <= 360 && wait == 0){
+      mover(angle);
     }
     else{
-      mover(angle);
-      Serial.println("moviendo");
+      mover(-1);
+    }
+
   }
-   // Serial.println(angle);
-    Serial.print(" ");
-   // Serial.println(IMUM);
-  } 
+  else
+  { //si lleva mucho tiempo sin angulo nuevo significa que no se debe de mover o hubo un error
+    stop(100);
+  }
+  Serial.print(angle);
+  Serial.print(" ");
+  Serial.println(IMUM);
   
-  mover(0);
-  delay(1000);
-  mover(90);
-  delay(1000);
-  mover(180);
-  delay(1000);
-  mover(270);
-  delay(1000);
+
 }  
 
