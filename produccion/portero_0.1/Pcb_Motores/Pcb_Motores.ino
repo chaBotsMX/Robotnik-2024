@@ -376,6 +376,7 @@ void loop() {
     angle = data[0] * 2; //se interpreta la informacion
     IMUM  = data[2] + data[3];
     wait = data[4];
+    vel = data[1];
     if(IMUM >= 180) //se calcula el offset del imu 
     {
       IMUM = IMUM -360;

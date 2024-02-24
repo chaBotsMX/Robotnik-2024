@@ -15,10 +15,27 @@ int pelota1 = 0, pelota2 = 0, orientacion1 = 0, orientacion2 = 0, angulo = 200; 
 int IMU, norte; //varaibles usadas para los calculos del imu
 
 int estado, intensidad = 0;
-
+int inLine = 0;
+int vel = 125;
 BNO bno;  //create bno from the Class BNO
 
 elapsedMillis stopTimer;
+
+
+int getBallXAngle(int x){
+  if(x >= 0 && x <= 90){
+    return 45;
+  }
+  else if(x > 90 && x <= 180){
+  return 135;
+  }
+}
+
+int getBallXMag(int x){
+  x = sin(x *2);
+  x = abs(x);
+  return x * vel;
+}
 
 void uartStart(){
   Serial.begin(115200); //comunicacion con pc
@@ -27,7 +44,7 @@ void uartStart(){
   delay(1000);
   Serial2.begin(115200); //M5
   delay(1000);
-  Serial3.begin(115200);//sensor de linea
+  Serial3.begin(115200, 0X00);//sensor de linea
   delay(1000);
   Serial5.begin(115200); // comunicacion con placa de motores
   delay(1000); //tiempo para sincronizar
@@ -55,7 +72,7 @@ void getUartInfo(){
   }
   if(Serial3.available())
   {
-    angEsp = Serial3.read();
+    angEsp = Serial3.read() * 2;
   }
 
 }
@@ -92,6 +109,24 @@ void sendToMotors(int angle, int pwm, int imu1, int imu2, int wait)
   Serial5.write((byte*)data5, dataLength5 * sizeof(data5[0]));
 }
 
+void jugar(){
+  if(angEsp == 200 && stop == 0){
+    sendToMotors(angulo,100,orientacion1,orientacion2, 0);    
+  }
+
+  else{
+    sendToMotors(angEsp,100,orientacion1,orientacion2, 0);
+    
+  }
+}
+
+int sumarAng(int ang1, int  ang2){
+  int x ,  y;
+  x = cos(ang1) + cos(ang2);
+  y = sin(ang1) + sin(ang2);
+  return atan2(y,x);
+}
+
 void setup()
 {
   uartStart();
@@ -100,7 +135,11 @@ void setup()
   Wire.setClock(400000); //velocidad el bus i2c, 400000 modo de ultra alta velocidad
   bno.startBNO(200, false);
   pinMode(13, OUTPUT); // led integrado para debugear
-  digitalWrite(13, HIGH);
+  digitalWrite(13, HIGH); 
+  if(Serial3.available() > 0){
+    Serial3.clear();
+    delay(1);
+  }
  /* while(!bno.isCalibrated())	//wait until everything is fully calibrated once....
   {
     bno.serialPrintCalibStat();	//print the current calibration levels via serial
@@ -112,17 +151,20 @@ void setup()
 
 void loop()
 {
- getImuInfo();
- getUartInfo();
+  getImuInfo();
+  getUartInfo();
 
-  if(angEsp == 200 && stop == 0){
-    sendToMotors(angulo,100,orientacion1,orientacion2, 0);    
+  if(angEsp == 500){
+    inLine = 1;
+  }
+  if(inLine == 1 && angulo != 200){
+    sendToMotors(getBallXAngle(angulo),getBallXMag(angulo),orientacion1,orientacion2,0);
+  }
+  else if(angEsp >= 0 && angEsp <= 180){
+    sendToMotors(angEsp,100,orientacion1,orientacion2,0);
   }
 
-  else{
-    sendToMotors(angEsp,100,orientacion1,orientacion2, 0);
-    
-  }
- 
- Serial.println(data5[0] * 2);
+ Serial.print(angEsp);
+ Serial.print(" ");
+ Serial.println(data5[0]);
 }

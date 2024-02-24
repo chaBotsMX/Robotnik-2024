@@ -1,5 +1,5 @@
 #include <Adafruit_NeoPixel.h>
-#include<elapsedMillis.h>
+#include <elapsedMillis.h>
 #define PIN        5
 #define NUMPIXELS 15 
 
@@ -20,6 +20,7 @@ int angulos [13]={
 
 int danger = 0;
 int angle = 0 , flag;
+int objetivo1, objetivo2;
 
 double cosx [12]={                                                                                                                  
   -1.0,
@@ -103,6 +104,14 @@ void loop() {
 
     }
   }
+  //sensores objetivos s14 y s7
+  //                   A14   A7
+  if(analogRead(A14) > 150){
+    objetivo1 = 1;
+  }
+  if(analogRead(A7) > 150){
+    objetivo2 = 1;
+  }
   /*
   Serial.print(x1);
   Serial.print("\t");
@@ -117,32 +126,15 @@ void loop() {
   }
   //Serial.println(angle);  
   //Serial.println(flag);
-  if (danger != 1){
-  if(flag == 1){
+  if(objetivo1 == 1 && objetivo2 == 1){
+    lastAngle = 500;
     writing = 0;
-    if(side == 0){
+  }  
+  else if(objetivo1 == 0 && objetivo2 == 0 && flag == 1){
     lastAngle = angle;
-    side = 1; 
-    inicial = angle;
-    flagcounter = 0;
-    }
-    else if(flag == 1 && side == 1){
-      if(inicial - angle >= 60 || inicial - angle <= -60){
-        lastAngle = inicial;
-        flagcounter = 0;
- 
-      }
-      else{
-        angle = lastAngle;
-        flagcounter = 0;
-      }
-    }
+    writing = 0;
+  }
 
-  }
-  }
-  else {
-    lastAngle = 180;
-  }
   if(writing <= 50 ){
     Serial1.write(lastAngle/2);
 
@@ -153,7 +145,7 @@ void loop() {
     Serial.println("cancha");
   }
 
-  if(flagcounter >= 100)
+  if(flagcounter >= 50)
   {
     danger = 0;
     side = 0;
@@ -178,7 +170,7 @@ void loop2 (void* pvParameters){
  int especial1, especial2, especial3;
     especial1 = analogRead(A10);
     especial2 = analogRead(A18);
-    especial3 = analogRead(A3);
+    especial3 = analogRead(A12);
     //Serial.println(especial3);
     if(especial1 >150 || especial2 > 150){
       flag = 1;

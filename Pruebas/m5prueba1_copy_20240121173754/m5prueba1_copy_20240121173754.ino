@@ -7,18 +7,14 @@ void setup() {
     M5.Power.begin();   
     M5.Lcd.setTextColor(GREEN);  
     M5.Lcd.setTextSize(5);
-    M5.Lcd.println("Prueba");
+    M5.Lcd.println("ocelot");
     delay(1000);     
-<<<<<<< HEAD
     Serial.begin(115200);
-=======
-    Serial.begin(9600);
->>>>>>> ce7576fd748d9db97f0f69f0d869eaaa0449a32c
+
 }
 
 void BotonA(){
   if(M5.BtnA.wasPressed()){
-    Serial.write(estado);
     if(estado==1) {
       estado=0;
     }
@@ -26,6 +22,7 @@ void BotonA(){
       estado=1;
     }
   }
+  Serial.write(estado);
   M5.Lcd.setCursor(70,90);
   if(estado==1){
     M5.Lcd.clear(BLACK);
@@ -39,7 +36,6 @@ void BotonA(){
 
 void BotonB(){
   if(M5.BtnB.wasPressed()){
-    Serial.write(estado);
     if(estado==2) {
       estado=0;
     }
@@ -47,6 +43,7 @@ void BotonB(){
       estado=2;
     }
   }
+  Serial.write(estado);
   M5.Lcd.setCursor(70,90);
   if(estado==2){
    M5.Lcd.clear(BLACK);
@@ -60,7 +57,6 @@ void BotonB(){
 
 void BotonC(){
   if(M5.BtnC.wasPressed()){
-    Serial.write(estado);    
     if(estado==3) {
       estado=0;
     }
@@ -68,6 +64,7 @@ void BotonC(){
       estado=3;
     }
   }
+  Serial.write(estado);
   M5.Lcd.setCursor(30,90);
   if(estado==3){
     M5.Lcd.clear(BLACK);
@@ -97,10 +94,7 @@ void loop() {
       BotonB();
       BotonC();
       break;
-}
-<<<<<<< HEAD
-}
-=======
+  }
+
 }
 
->>>>>>> ce7576fd748d9db97f0f69f0d869eaaa0449a32c
