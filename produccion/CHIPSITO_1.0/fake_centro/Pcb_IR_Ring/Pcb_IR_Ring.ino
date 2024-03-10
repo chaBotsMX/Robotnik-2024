@@ -72,12 +72,14 @@ void loop() {
     else{
       enviar = enviar/2;
     }
+
+    
     Serial1.write(enviar);
-   // Serial.println(intensidad);
+   
     Serial.print(enviar);
     Serial.print(" ");
     Serial.println(angle);
   }
   //el delay es para evitar que la raspb funcione al 100% y a si evitar problemas en la sincronizacion del uart
- 
+  
 }  

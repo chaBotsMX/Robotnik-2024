@@ -20,10 +20,6 @@ int calibracionImu;
 
 int ceroFake;
 
-int xOpenMV; int yOpenMV;
-int communicationMV = 1;
-
-
 BNO bno;  //create bno from the Class BNO
 
 elapsedMillis stopTimer;
@@ -37,8 +33,6 @@ void uartStart(){
   Serial2.begin(115200); //M5
   delay(1000);
   Serial3.begin(115200, 0X00);//sensor de linea
-  delay(1000);
-  Serial.begin(115200); //openMV
   delay(1000);
   Serial5.begin(115200); // comunicacion con placa de motores
   delay(1000); //tiempo para sincronizar
@@ -67,34 +61,8 @@ void getUartInfo(){
     angEsp = Serial3.read();
   }
 
-  openMVSetup();
-
 }
 
-void openMVSetup(){
-  if(communicationMV==1){
-    Serial4.write(1);
-    communicationMV=3;
-  }
-  else if(communicationMV==2){
-    Serial4.write(2);
-    communicationMV=4;
-  }
-  if (communicationMV==3){
-    int entrante=Serial4.read();
-    if (entrante!=-1){
-      xOpenMV=entrante;
-      communicationMV=2;
-    }
-  }
-  if (communicationMV==4){
-    int entrante=Serial4.read();
-    if (entrante!=-1){
-      yOpenMV=entrante;
-      communicationMV=1;
-    }
-  }
-}
 
 
 void getImuInfo(){
