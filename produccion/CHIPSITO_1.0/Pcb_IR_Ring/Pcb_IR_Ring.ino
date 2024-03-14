@@ -7,6 +7,8 @@ int angle;
 int intensidad;
 int enviar;
 int lastInten;
+#define intensidad_constante 140
+#define intensidad_cuadrado 19600
 TSSP sensor_IR;
 
 int angulo(int x){
@@ -25,6 +27,24 @@ int angulo(int x){
     return  x+90*intensidad/1200;
   }
   else{return 200;}
+}
+
+int ajusteAngulo(int x){
+  int anguloModificado = x;
+  if(anguloModificado<=350 && anguloModificado >=30){
+    anguloModificado>=180 ? x=1 : x=0; 
+    anguloModificado>=180 ? anguloModificado=360.00-anguloModificado : anguloModificado=anguloModificado;
+    double t=sqrt(((intensidad*intensidad)+(intensidad_cuadrado))-2*(intensidad*intensidad_constante)*cos(anguloModificado*M_PI/180.00));
+    double d=asin(((intensidad*sin(anguloModificado*M_PI/180.00))/t))*180.00/M_PI;
+    if(!x)
+      anguloModificado=180.00-(180.00-anguloModificado-d);
+    else
+      anguloModificado=180.00+(180.00-anguloModificado-d);
+
+    return anguloModificado;
+  } else {
+    return 0;
+  }
 }
 
 void setup() {
@@ -53,10 +73,17 @@ void loop() {
       else{
         intensidad = lastInten;
       }
-      enviar = angulo(angle);
+      
+      enviar = ajusteAngulo(angle);
     }
-
     
+    Serial.print(intensidad);
+    Serial.print(" ");
+    Serial.print(angle);
+Serial.print(" ");
+    
+Serial.print(" ");
+    Serial.println(enviar);
     if (angle <= 20 && angle >=0 || angle >= 330 ){
     
         enviar = angle/2;
@@ -74,9 +101,7 @@ void loop() {
     }
     Serial1.write(enviar);
    // Serial.println(intensidad);
-    Serial.print(enviar);
-    Serial.print(" ");
-    Serial.println(angle);
+    
   }
   //el delay es para evitar que la raspb funcione al 100% y a si evitar problemas en la sincronizacion del uart
  

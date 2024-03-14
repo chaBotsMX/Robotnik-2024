@@ -21,8 +21,8 @@ void TSSP::sensorInfo(){
     lectura[i]=0;
   do {
     for(int i = 0; i<NUM_TSSP; i++){
-      //  Serial.print(digitalRead(tssp[i]));
-      //  Serial.print(" ");
+        //Serial.print(digitalRead(tssp[i]));
+        //Serial.print(" ");
       if(!digitalRead(tssp[i])) {
         lectura[i]+=delta;
       }
