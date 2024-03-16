@@ -1,76 +1,77 @@
-# This work is licensed under the MIT license.
-# Copyright (c) 2013-2023 OpenMV LLC. All rights reserved.
-# https://github.com/openmv/openmv/blob/master/LICENSE
-#
-# Multi Color Blob Tracking Example
-#
-# This example shows off multi color blob tracking using the OpenMV Cam.
-
 import sensor
 import time
-import math
+import pyb
 from pyb import UART
 
-
-# Color Tracking Thresholds (L Min, L Max, A Min, A Max, B Min, B Max)
-# The below thresholds track in general red/green things. You may wish to tune them...
-amarillo = [
-    (52, 67, -8, 33, 25, 69),
-]
-azul = [
-    (0, 100, -15, 26, -50, -17),
-]
-
+# Color Tracking Thresholds
+amarillo = [(48, 70, 12, 62, 36, 84),]
+azul = [(30, 55, -18, 26, -52, -19),]
 
 sensor.reset()
-#sensor.set_auto_exposure(False)
 sensor.set_pixformat(sensor.RGB565)
 sensor.set_framesize(sensor.QVGA)
 sensor.skip_frames(time=2000)
 sensor.set_contrast(3)
-sensor.set_brightness(-2)
-sensor.set_saturation(0)
+sensor.set_brightness(-3)
+sensor.set_saturation(3)
+sensor.set_auto_gain(False)
+sensor.set_auto_whitebal(False)
+sensor.skip_frames(time=2000)
 
-sensor.set_auto_gain(False)  # must be turned off for color tracking
-sensor.set_auto_whitebal(False)  # must be turned off for color tracking
-clock = time.clock()
+uart = UART(1, 9600, timeout_char=1000)
 
-# Only blobs that with more pixels than "pixel_threshold" and more area than "area_threshold" are
-# returned by "find_blobs" below. Change "pixels_threshold" and "area_threshold" if you change the
-# camera resolution. Don't set "merge=True" because that will merge blobs which we don't want here.
+roi = (60, 15, 220, 240)
 
-uart = UART(1, 115200, timeout_char=1000)                         # init with given baudrate
+# Establece el ROI
+sensor.set_windowing(roi)
+
 
 while True:
     img = sensor.snapshot()
 
-    vectorAmarilloX = 0
-    vectorAmarilloY = 0
-    vectorAzulX = 0
-    vectorAzulY = 0
-    cont = 0
-    for blob in img.find_blobs(amarillo, pixels_threshold=20, area_threshold=20):
-        cont =+ 1
-        vectorAmarilloX = vectorAmarilloX + blob.cx() - 160
-        vectorAmarilloY = vectorAmarilloY + blob.cy() - 120
-        img.draw_cross(blob.cx(), blob.cy())
+    # Inicializar variables para almacenar el blob más grande
+    max_area_amarillo = 0
+    max_blob_amarillo = None
+    max_area_azul = 0
+    max_blob_azul = None
 
-    if cont > 0 :
-        vectorAmarilloY = vectorAmarilloY/2
+    # Buscar el blob más grande de color amarillo
+    for blob in img.find_blobs(amarillo, pixels_threshold=20, area_threshold=20, merge=True):
+        if blob.area() > max_area_amarillo:
+            max_area_amarillo = blob.area()
+            max_blob_amarillo = blob
 
+    # Buscar el blob más grande de color azul
+    for blob in img.find_blobs(azul, pixels_threshold=100, area_threshold=100, merge=True):
+        if blob.area() > max_area_azul:
+            max_area_azul = blob.area()
+            max_blob_azul = blob
 
-    cont = 0
-    for blob in img.find_blobs(azul, pixels_threshold=100, area_threshold=100):
-        cont =+ 1
-        vectorAzulX = vectorAzulX + blob.cx() - 160
-        vectorAzulY = vectorAzulY + blob.cy() - 120
-        img.draw_cross(blob.cx(), blob.cy())
-    if cont > 0 :
-        vectorAzulY = vectorAzulY/2
-    vectorAzulX = vectorAzulX + vectorAmarilloX
-    vectorAzulY = vectorAzulY + vectorAmarilloY
-    vectorAzulX = int(vectorAzulX)
-    vectorAzulY = int(vectorAzulY)
-    img.draw_line(160,120,vectorAzulX + 160, vectorAzulY + 120)
+    # Calcular el vector hacia el blob más grande de cada color
+    if max_blob_amarillo:
+        vectorAmarilloX = max_blob_amarillo.cx()
+        vectorAmarilloY = max_blob_amarillo.cy()
+        img.draw_cross(max_blob_amarillo.cx(), max_blob_amarillo.cy())
+    else:
+        vectorAmarilloX = 0
+        vectorAmarilloY = 0
 
+    if max_blob_azul:
+        vectorAzulX = max_blob_azul.cx()
+        vectorAzulY = max_blob_azul.cy()
+        img.draw_cross(max_blob_azul.cx(), max_blob_azul.cy())
+    else:
+        vectorAzulX = 0
+        vectorAzulY = 0
 
+    # Sumar los vectores
+    vectorFinalX = vectorAmarilloX + vectorAzulX
+    vectorFinalY = vectorAmarilloY + vectorAzulY
+
+    # Dibujar línea hacia el vector final
+    img.draw_line(112, 120, int(vectorFinalX/2), int(vectorFinalY/2))
+
+    # Enviar datos por UART
+    uart.write("VX:{} VY:{}\n".format(vectorFinalX, vectorFinalY))
+    print("X",vectorFinalX/2)
+    print("Y",vectorFinalY/2)

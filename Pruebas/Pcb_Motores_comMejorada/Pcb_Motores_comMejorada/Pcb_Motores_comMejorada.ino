@@ -2,7 +2,7 @@
 #define pi 3.14159265358
 
 elapsedMillis uartMillis;
-int angle;
+int angle = 400;
 int M1D1 = 0, M1D2 = 1, M2D1 = 3, M2D2 = 2, M3D1 = 5, M3D2 = 4, M4D1 = 6, M4D2 = 7; //pines de los motores
 double dir1, dir2, dir3, dir4, pow1, pow2, pow3, pow4, vel = 100; //variables usadas para calcular pwm de cada motor
 double IMUM; //offset del imu
@@ -28,55 +28,73 @@ int receivedAngle = 0; // Nuevo
 
 bool newData = false;
 
+void processReceivedData() {
+  // Asegúrate de realizar este cálculo rápidamente para no retrasar el loop
+  angle = receivedAngle * 2;
+  IMUM = receivedOrientationError * 2; // Ajustar según necesidades reales
+  wait = receivedMovementIndicator;
+  vel = receivedPWM;
+
+  // Ajuste de IMUM a un rango adecuado
+  if (IMUM >= 180) {
+    IMUM = IMUM - 360;
+  }
+
+  // Restablecer el temporizador para indicar la recepción de datos nuevos
+  uartMillis = 0;
+
+  // Aquí podrías llamar a funciones para mover los motores basado en los nuevos datos
+  if (newData) {
+    mover(angle); // Asumiendo que mover() ajusta los motores basándose en `angle` y otros datos globales
+    newData = false; // Asegúrate de restablecer `newData`
+  }
+}
+
 void receiveData() {
   static byte rcvPacket[packetSize];
   static unsigned int bytesRcvd = 0;
   byte rc;
 
+  // Procesar todos los datos disponibles en el buffer de manera eficiente
   while (Serial1.available() > 0 && !newData) {
     rc = Serial1.read();
 
+    // Capturar el marcador de inicio para comenzar a llenar el paquete
     if (bytesRcvd == 0 && rc != startMarker) {
-      continue; // Espera por el marcador de inicio
+      continue; // Si no es el marcador de inicio, sigue escuchando
     }
 
     rcvPacket[bytesRcvd++] = rc;
 
-    if (rc == endMarker && bytesRcvd == packetSize) {
-      // Verificar el checksum
-      byte checksum = 0;
-      for (unsigned int i = 1; i < packetSize - 2; i++) { // Ignora el startMarker y endMarker para el cálculo del checksum
-        checksum += rcvPacket[i];
-      }
-
-      if (checksum == rcvPacket[packetSize - 2]) {
-        // Extrae los datos
-        receivedPWM = rcvPacket[1];
-        receivedOrientationError = rcvPacket[2];
-        receivedMovementIndicator = rcvPacket[3];
-        receivedAngle = rcvPacket[4]; // Extrae el ángulo
-        newData = true;
-        angle = recivedAngle; //se interpreta la informacion
-        IMUM  = recivedOrientationError*2;
-        wait = recivedMoventIndicator;
-        vel = recivedPWM;
-        if(IMUM >= 180) //se calcula el offset del imu 
-        {
-          IMUM = IMUM -360;
+    if (bytesRcvd >= packetSize) {
+      if (rcvPacket[0] == startMarker && rcvPacket[packetSize - 1] == endMarker) {
+        // Calcular el checksum
+        byte checksum = 0;
+        for (unsigned int i = 1; i < packetSize - 2; i++) {
+          checksum += rcvPacket[i];
         }
-        uartMillis = 0; // se reinicia el contador para saber que si hubo informacion nueva
-      } else {
-        Serial.println("Error en checksum");
-        // Opcionalmente, manejar el error de checksum
-      }
 
-      bytesRcvd = 0; // Restablece para el próximo paquete
-    } else if (bytesRcvd >= packetSize) {
-      // Restablece si se recibe un paquete incorrecto o desincronizado
-      bytesRcvd = 0;
+        if (checksum == rcvPacket[packetSize - 2]) {
+          // Desempaquetar los datos
+          receivedPWM = rcvPacket[1];
+          receivedOrientationError = rcvPacket[2];
+          receivedMovementIndicator = rcvPacket[3];
+          receivedAngle = rcvPacket[4];
+          newData = true;
+          
+          // Interpretar y ajustar los datos recibidos aquí si es necesario
+          processReceivedData();
+        } else {
+          Serial.println(F("Error en checksum"));
+        }
+      } else {
+        Serial.println(F("Error en paquete"));
+      }
+      bytesRcvd = 0; // Restablecer para el próximo paquete
     }
   }
 }
+  
 
 void motor1( int dir, int pow){      ////////// mover los motores indicando direcciÃ³n (1 fwd, -1 back) y cuanto poder asignarle
 
@@ -265,7 +283,12 @@ void motores(int num, int pot){
 
 void mover ( int angle){      ///////////Funcion para calcular en que direccion moverte con omnidireccional (angulo y tiempo)
 
-  if(angle != -1){
+  Serial.print(angle);
+  Serial.print(" ");
+  Serial.println(IMUM);
+
+
+  if(angle != 400){
   dir1=angle+45;
   dir2=angle+135;
   dir3=angle+45;
@@ -291,12 +314,12 @@ void mover ( int angle){      ///////////Funcion para calcular en que direccion 
 
  // Serial.println( IMUM );
 
-  IMUM = IMUM * 1.05;
+  int err = IMUM * 1.05;
 
-  pow1=pow1 + IMUM;
-  pow2=pow2 - IMUM;
-  pow3=pow3 - IMUM;
-  pow4=pow4 + IMUM;
+  pow1=pow1 + err;
+  pow2=pow2 - err;
+  pow3=pow3 - err;
+  pow4=pow4 + err;
 
  
 
@@ -406,22 +429,15 @@ void setup() {
 }
 
 void loop() {
-  receiveData();
+  receiveData(); // Continuamente verifica y procesa datos nuevos
 
-  if(uartMillis <100)// si hay informacion reciente se mueve al angulo de la informacion
-  {
-    if(angle >= 0 && angle <= 360 && wait == 0){
-      mover(angle);
-    }
-    else{
-      mover(-1);
-    }
+  // El resto de tu lógica de control aquí
+  if (uartMillis < 100 && newData) { // Asegúrate de que newData sea usado correctamente
+    // mover() se llama desde processReceivedData() cuando newData es true
+  } else if (uartMillis >= 100) {
+    stop(100); // Detiene los motores si no hay datos nuevos en 100 ms
+  }
 
-  }
-  else
-  { //si lleva mucho tiempo sin angulo nuevo significa que no se debe de mover o hubo un error
-    stop(100);
-  }
   Serial.print(angle);
   Serial.print(" ");
   Serial.println(IMUM);

@@ -31,11 +31,12 @@ enum State {
   READ_CHECKSUM,
   WAIT_FOR_END
 };
+String inputString = ""; 
 
 // Variables globales para almacenar el ángulo e intensidad
 int globalAngle = 0;
 int globalIntensity = 0;
-
+int localAngle = 0;
 // Estado inicial
 State currentState = WAIT_FOR_START;
 
@@ -48,27 +49,41 @@ BNO bno;  //create bno from the Class BNO
 elapsedMillis stopTimer;
 
 elapsedMillis uart2timer;
+elapsedMillis irTimer;
 void uartStart(){
   Serial.begin(115200); //comunicacion con pc
   delay(1000);
-  Serial1.begin(115200); //anillo de ir
+  Serial1.begin(57600); //anillo de ir
   delay(1000);
   Serial2.begin(115200); //M5
   delay(1000);
   Serial3.begin(115200, 0X00);//sensor de linea
   delay(1000);
-  Serial4.begin(115200); //openMV
+  Serial4.begin(9600); //openMV
   delay(1000);
   Serial5.begin(115200); // comunicacion con placa de motores
   delay(1000); //tiempo para sincronizar
 
+}
+void extractXY(const String& dataStr, int& xValue, int& yValue) {
+  int xPos = dataStr.indexOf("X:") + 2; // Busca el inicio del valor de X.
+  int yPos = dataStr.indexOf("Y:") + 2; // Busca el inicio del valor de Y.
+  int endPos = dataStr.indexOf('\n'); // Encuentra el fin de la línea.
+
+  if (xPos > 0 && yPos > 0) {
+    String xStr = dataStr.substring(xPos, dataStr.indexOf(' ', xPos));
+    String yStr = dataStr.substring(yPos, endPos);
+
+    xValue = xStr.toInt(); // Convierte el substring de X a un entero.
+    yValue = yStr.toInt(); // Convierte el substring de Y a un entero.
+  }
 }
        
 void getUartInfo(){
 
  if (Serial1.available() > 0) {
     byte incomingByte = Serial1.read();
-    
+
     switch (currentState) {
       case WAIT_FOR_START:
         if (incomingByte == 255) {
@@ -78,11 +93,17 @@ void getUartInfo(){
         break;
 
       case READ_ANGLE_HIGH:
+        localAngle = incomingByte * 255;
+       // Serial.println(incomingByte);
+        
         calculatedChecksum += incomingByte;
         currentState = READ_ANGLE_LOW;
         break;
 
       case READ_ANGLE_LOW:
+        localAngle = localAngle + incomingByte;
+        //Serial.println(incomingByte);
+        //Serial.println(localAngle);
         calculatedChecksum += incomingByte;
         currentState = READ_INTENSITY_HIGH;
         break;
@@ -103,7 +124,7 @@ void getUartInfo(){
           currentState = WAIT_FOR_END;
         } else {
           // Checksum no coincide, intenta resincronizar
-          Serial.println("Error en el checksum, intentando resincronizar...");
+          //Serial.println("Error en el checksum, intentando resincronizar...");
           currentState = WAIT_FOR_START;
         }
         break;
@@ -111,14 +132,23 @@ void getUartInfo(){
       case WAIT_FOR_END:
         if (incomingByte == 254) {
           // Mensaje completo y correcto, procesa los datos
-          Serial.println("Mensaje recibido correctamente.");
+         // Serial.println("Mensaje recibido correctamente.");
           // Aquí iría la lógica para procesar los datos recibidos
+          globalAngle = localAngle;
+          //Serial.println(globalAngle);
+          irTimer = 0;
         } else {
           // Fin de mensaje incorrecto, intenta resincronizar
-          Serial.println("Fin de mensaje incorrecto, intentando resincronizar...");
+         // Serial.println("Fin de mensaje incorrecto, intentando resincronizar...");
         }
         currentState = WAIT_FOR_START; // Vuelve al inicio para recibir un nuevo mensaje
         break;
+    }
+  }
+  else{
+    if(irTimer > 5){
+    globalAngle= 400;
+   // Serial.println(globalAngle);
     }
   }
 
@@ -138,29 +168,26 @@ void getUartInfo(){
 }
 
 void openMVSetup(){
-  if(communicationMV==1){
-    Serial4.write(1);
-    communicationMV=3;
-  }
-  else if(communicationMV==2){
-    Serial4.write(2);
-    communicationMV=4;
-  }
-  if (communicationMV==3){
-    int entrante=Serial4.read();
-    if (entrante!=-1){
-      xOpenMV=entrante;
-      communicationMV=2;
+  while (Serial4.available()) {
+    char inChar = (char)Serial4.read(); // Lee el próximo carácter.
+    inputString += inChar; // Añade el carácter a la cadena.
+
+    // Verifica si se ha recibido un salto de línea, indicando el fin del mensaje.
+    if (inChar == '\n') {
+      int xValue = 0, yValue = 0;
+      // Extrae los valores de X e Y.
+      extractXY(inputString, xValue, yValue);
+
+      // Imprime los valores para depuración.
+      Serial.print("X: ");
+      Serial.print(xValue);
+      Serial.print(", Y: ");
+      Serial.println(yValue);
+
+      inputString = ""; // Limpia la cadena para el próximo mensaje.
     }
   }
-  if (communicationMV==4){
-    int entrante=Serial4.read();
-    if (entrante!=-1){
-      yOpenMV=entrante;
-      communicationMV=1;
-    }
-  }
-}
+} 
 
 
 void getImuInfo(){
@@ -173,16 +200,6 @@ void getImuInfo(){
   IMU = bno.getHeading(); // se actualiza informacion del imu
   //si se registro un impacto en el imu entonces se cargan los valores calibrados en el eeprom para evitar error en el imu
   //Serial.println(IMU);
-  if(IMU >= 255 )
-  {
-    orientacion1 = 255;
-    orientacion2 = IMU - 255;
-  }  
-  else
-  {
-    orientacion1 = IMU;
-    orientacion2 = 0;
-  }
 }
 
 void cero(){
@@ -190,21 +207,11 @@ void cero(){
   if (ceroFake<0){
     ceroFake=360+ceroFake;
   }
-  Serial.println(ceroFake);
-
-  if(ceroFake >= 255 )
-  {
-    orientacion1 = 255;
-    orientacion2 = ceroFake - 255;
-  }  
-  else
-  {
-    orientacion1 = ceroFake;
-    orientacion2 = 0;
-  }
+  ceroFake = ceroFake/2;
+  //Serial.println(ceroFake);
 }
 
-void sendToMotorController(int pwm, int orientationError, int movementIndicator) {
+void sendToMotorController(int pwm, int orientationError, int movementIndicator, int angleToMove) {
     const byte startMarker = 0xFF;
     const byte endMarker = 0xFE;
     
@@ -212,31 +219,36 @@ void sendToMotorController(int pwm, int orientationError, int movementIndicator)
     byte pwmByte = constrain(pwm, 0, 255);
     byte orientationErrorByte = constrain(orientationError, 0, 255);
     byte movementIndicatorByte = movementIndicator ? 1 : 0; // Asegurar que solo sea 0 o 1.
+    byte angleToMoveByte = constrain(globalAngle/2, 0, 255); 
     
     // Calculamos el checksum como la suma simple de los datos
-    byte checksum = pwmByte + orientationErrorByte + movementIndicatorByte;
+    byte checksum = pwmByte + orientationErrorByte + movementIndicatorByte + angleToMoveByte;
     
     // Enviamos los datos
     Serial5.write(startMarker);
     Serial5.write(pwmByte);
     Serial5.write(orientationErrorByte);
     Serial5.write(movementIndicatorByte);
+    Serial5.write(angleToMoveByte);
     Serial5.write(checksum);
     Serial5.write(endMarker);
+    Serial.println(orientationErrorByte);
+    Serial.println(angleToMoveByte);
+    Serial.println(pwmByte);
 }
 
 void jugar(){
   if(angEsp == 200 && stop == 0){
-    sendToMotors(anguloIR,20,orientacion1,orientacion2, 0);     
+   sendToMotorController(100,ceroFake,0,globalAngle/2); 
   }
 
   else if(angEsp != 200 && stop == 0 && anguloIR <= 180 && anguloIR >= 0){
     //angEsp = sumarAng(angEsp,*2);
-    sendToMotors(angEsp,20,orientacion1,orientacion2, 0);
+    sendToMotorController(100,ceroFake,0, angEsp);
     
   }
   else{
-    sendToMotors(angEsp,20,orientacion1,orientacion2, 0);
+    sendToMotorController(100,ceroFake,0, angEsp);
   }
 }
 
@@ -256,6 +268,7 @@ void setup()
   bno.startBNO(200, false);
   pinMode(13, OUTPUT); // led integrado para debugear
   digitalWrite(13, HIGH); 
+  inputString.reserve(200); 
   if(Serial3.available() > 0){
     Serial3.clear();
     delay(1);
@@ -296,7 +309,7 @@ void loop()
     default:
      // Serial.println("esperandoAJuan");
      if(uart2timer > 50){
-     Serial2.write(anguloIR);
+     Serial2.write(globalAngle);
      uart2timer = 0;
      }
       break;

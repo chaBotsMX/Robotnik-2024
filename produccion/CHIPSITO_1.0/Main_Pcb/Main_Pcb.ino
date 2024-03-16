@@ -38,7 +38,7 @@ void uartStart(){
   delay(1000);
   Serial3.begin(115200, 0X00);//sensor de linea
   delay(1000);
-  Serial.begin(115200); //openMV
+  Serial4.begin(115200); //openMV
   delay(1000);
   Serial5.begin(115200); // comunicacion con placa de motores
   delay(1000); //tiempo para sincronizar
