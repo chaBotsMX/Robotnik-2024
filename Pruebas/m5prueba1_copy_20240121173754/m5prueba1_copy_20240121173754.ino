@@ -53,11 +53,10 @@ void setup() {
 
 void setMode(){
   Serial.write(estado);
-  M5.Lcd.setCursor(70,90);
   if(estado==1){
     M5.Lcd.clear(BLACK);
-    M5.Lcd.setCursor(35,90);
-    M5.Lcd.println("IMU");
+    setText(1, WHITE, 0,0, "SETMODE");
+    crearBarra("SET", BLUE,80,90,150,55);
     delay(100);
   }
   delay(20);
@@ -66,11 +65,10 @@ void setMode(){
 
 void partido(){
   Serial.write(estado);
-  M5.Lcd.setCursor(70,90);
   if(estado==2){
-   M5.Lcd.clear(BLACK);
-    M5.Lcd.setCursor(80,90);
-    M5.Lcd.println("jugando");
+    M5.Lcd.clear(BLACK);
+    setText(1, WHITE, 0,0, "PARTIDO");
+    M5.Lcd.drawBitmap(50,0,240,240,(uint8_t *)Chabots_Ocelot_Logo2_map);
     delay(100);
   }
   delay(20);
@@ -198,34 +196,48 @@ void menuData(){
             switch (contador){
                 case 0: //IR
                     M5.Lcd.clear(BLACK);
+                    crearBarra("IR", BLUE, 80,90,150,55);
+                    delay(500);
+                    M5.Lcd.clear(BLACK);
                     Serial.println("IR");
+                      if(Serial.available()){
+                        angleLinea = Serial.read();
+                        angleLinea=angleLinea*2;
+                        //Serial.println(angleLinea);
+                        M5.Lcd.println(angleLinea);  
+                      }   
+                      xLinea=cos((angleLinea-90)*3.1416/180);
+                      yLinea=sin((angleLinea-90)*3.1416/180);
+                      M5.Lcd.drawCircle(160, 120, 100, BLUE);  // Draw a red circle of radius 50 at (x,y)
+                      M5.Lcd.drawLine(160, 120, xLinea*100+160, yLinea*100+120, WHITE);
                     
                     break;
                 case 1: //IMU
+                    M5.Lcd.clear(BLACK);
+                    crearBarra("IMU", BLUE, 80,90,150,55);
                     Serial.println("IMU");
                     
                     break;
                 case 2: //LS
+                    M5.Lcd.clear(BLACK);
+                    crearBarra("LS", BLUE, 80,90,150,55);
                     Serial.println("LS");
                     
                     break;
-                case 3: //US1
-                    Serial.println("US1");
-                    drawField();
-                    
-                    while(mantener()){
-                        Serial.println("Cancha MAMALONA");
-                    }
+                case 3: //PWM
+                    M5.Lcd.clear(BLACK);
+                    crearBarra("PWM", BLUE, 80,90,150,55);
+                    Serial.println("PWM");
+
                     break;
-                case 4: //US2
-                    Serial.println("US2");
-                    drawField();
-                    while(mantener()){
-                        Serial.println("Cancha MAMALONA");
-                    }
+                case 4: //IRI
+                    M5.Lcd.clear(BLACK);
+                    crearBarra("IRI", BLUE, 80,90,150,55);
+                    Serial.println("IRI");
                     break;
-                case 5: //US3
-                    Serial.println("US3");
+                case 5: //FLD
+                    M5.Lcd.clear(BLACK);
+                    Serial.println("FLD");
                     drawField();
                     while(mantener()){
                         Serial.println("Cancha MAMALONA");
@@ -287,7 +299,6 @@ void loop() {
     case 2:
       mainMenu=0;
       partido();
-      M5.Lcd.drawBitmap(0,0,320,240,(uint8_t *)Chabots_Ocelot_Logo2_map);
       break;
     case 3:
       //infoIR();
@@ -304,7 +315,7 @@ void loop() {
         setText(2,WHITE,2,205,"set Mode");
         setText(2,WHITE,122,205,"PARTIDO");
         setText(2,WHITE,235,205,"Datos");
-        M5.Lcd.drawBitmap(0,0,320,240,(uint8_t *)M5Stack_map);
+        M5.Lcd.drawBitmap(0,15,320,240,(uint8_t *)M5Stack_map);
       //infoIR();
       
       break;

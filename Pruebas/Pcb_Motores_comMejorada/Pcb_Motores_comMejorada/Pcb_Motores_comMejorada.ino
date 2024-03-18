@@ -44,9 +44,13 @@ void processReceivedData() {
   uartMillis = 0;
 
   // Aquí podrías llamar a funciones para mover los motores basado en los nuevos datos
-  if (newData) {
+  if (newData && angle < 360) {
     mover(angle); // Asumiendo que mover() ajusta los motores basándose en `angle` y otros datos globales
     newData = false; // Asegúrate de restablecer `newData`
+  }
+  else{
+    newData = false;
+    stop(10);  
   }
 }
 

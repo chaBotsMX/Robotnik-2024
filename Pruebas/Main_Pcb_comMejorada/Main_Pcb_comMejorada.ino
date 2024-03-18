@@ -79,6 +79,10 @@ void extractXY(const String& dataStr, int& xValue, int& yValue) {
   }
 }
        
+void coordenadasConvertidas(){
+  
+}
+
 void getUartInfo(){
 
  if (Serial1.available() > 0) {
@@ -177,12 +181,18 @@ void openMVSetup(){
       int xValue = 0, yValue = 0;
       // Extrae los valores de X e Y.
       extractXY(inputString, xValue, yValue);
+      
+      xOpenMV=xValue;
+      yOpenMV=yValue;
 
-      // Imprime los valores para depuración.
+      xOpenMV=xOpenMV-120;
+      yOpenMV=yOpenMV-105;
+
+      //Imprime los valores para depuración.
       Serial.print("X: ");
-      Serial.print(xValue);
+      Serial.print(xOpenMV);
       Serial.print(", Y: ");
-      Serial.println(yValue);
+      Serial.println(yOpenMV);
 
       inputString = ""; // Limpia la cadena para el próximo mensaje.
     }
@@ -237,6 +247,23 @@ void sendToMotorController(int pwm, int orientationError, int movementIndicator,
     Serial.println(pwmByte);
 }
 
+void traslado(){
+  int distancia;
+  distancia=powf(20-xOpenMV, 2.0) + powf(-10-yOpenMV, 2.0);
+  distancia=sqrt(distancia);
+
+  int cateto;
+  cateto=yOpenMV-20;
+  globalAngle=cos(cateto/distancia);
+  globalAngle=globalAngle*180/3.1416;
+  Serial.println(globalAngle);
+
+  if (xOpenMV>=20 && xOpenMV<=40 && yOpenMV>=0 && yOpenMV<=-20){
+    Serial.println("stop");
+    globalAngle=400;
+  }
+}
+
 void jugar(){
   if(angEsp == 200 && stop == 0){
    sendToMotorController(100,ceroFake,0,globalAngle/2); 
@@ -289,8 +316,10 @@ void loop()
   getUartInfo();
 
   cero();
+  traslado();
   switch (estado){
     case 1:
+      traslado();
       jugar();
       Serial.println("jugarJuan");
       break;

@@ -4,7 +4,7 @@ import pyb
 from pyb import UART
 
 # Color Tracking Thresholds
-amarillo = [(48, 70, 12, 62, 36, 84),]
+amarillo = [(45, 58, -22, 33, 15, 100),]
 azul = [(30, 55, -18, 26, -52, -19),]
 
 sensor.reset()
@@ -72,6 +72,6 @@ while True:
     img.draw_line(112, 120, int(vectorFinalX/2), int(vectorFinalY/2))
 
     # Enviar datos por UART
-    uart.write("VX:{} VY:{}\n".format(vectorFinalX, vectorFinalY))
+    uart.write("VX:{} VY:{}\n".format(vectorFinalX/2, vectorFinalY/2))
     print("X",vectorFinalX/2)
     print("Y",vectorFinalY/2)
