@@ -248,13 +248,13 @@ void sendToMotorController(int pwm, int orientationError, int movementIndicator,
 }
 
 void traslado(){
-  int distancia;
-  distancia=powf(20-xOpenMV, 2.0) + powf(-10-yOpenMV, 2.0);
+  double distancia;
+  distancia=powf(20-xOpenMV, 2.0) + powf(10-yOpenMV, 2.0);
   distancia=sqrt(distancia);
 
-  int cateto;
+  double cateto;
   cateto=yOpenMV-20;
-  globalAngle=cos(cateto/distancia);
+  globalAngle=atan2f(cateto,distancia);
   globalAngle=globalAngle*180/3.1416;
   Serial.println(globalAngle);
 
@@ -262,6 +262,7 @@ void traslado(){
     Serial.println("stop");
     globalAngle=400;
   }
+  globalAngle = floor(globalAngle);
 }
 
 void jugar(){

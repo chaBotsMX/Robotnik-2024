@@ -1,4 +1,5 @@
 #include<elapsedMillis.h>
+#include <PID_v1.h>
 #define pi 3.14159265358
 
 elapsedMillis uartMillis;
@@ -7,14 +8,6 @@ int M1D1 = 0, M1D2 = 1, M2D1 = 3, M2D2 = 2, M3D1 = 5, M3D2 = 4, M4D1 = 6, M4D2 =
 double dir1, dir2, dir3, dir4, pow1, pow2, pow3, pow4, vel = 100; //variables usadas para calcular pwm de cada motor
 double IMUM; //offset del imu
 int wait = 0;
-
-
-
-//variables del pid
-unsigned long lastTime;
-double Input, Output, SetPoint;
-double errSum, LastErr;
-double kp, ki, kd;
 
 const byte startMarker = 0xFF;
 const byte endMarker = 0xFE;
@@ -27,6 +20,12 @@ int receivedMovementIndicator = 0;
 int receivedAngle = 0; // Nuevo
 
 bool newData = false;
+
+double Setpoint, Input, Output;
+
+//Specify the links and initial tuning parameters
+PID myPID(&Input, &Output, &Setpoint,1,5,1,P_ON_M, DIRECT)
+
 
 void processReceivedData() {
   // Asegúrate de realizar este cálculo rápidamente para no retrasar el loop
@@ -45,6 +44,7 @@ void processReceivedData() {
 
   // Aquí podrías llamar a funciones para mover los motores basado en los nuevos datos
   if (newData && angle < 360) {
+    Input = IMUM;
     mover(angle); // Asumiendo que mover() ajusta los motores basándose en `angle` y otros datos globales
     newData = false; // Asegúrate de restablecer `newData`
   }
@@ -318,12 +318,12 @@ void mover ( int angle){      ///////////Funcion para calcular en que direccion 
 
  // Serial.println( IMUM );
 
-  int err = IMUM * 1.05;
+  myPID.Compute();
 
-  pow1=pow1 + err;
-  pow2=pow2 - err;
-  pow3=pow3 - err;
-  pow4=pow4 + err;
+  pow1=pow1 + Output;
+  pow2=pow2 - Output;
+  pow3=pow3 - Output;
+  pow4=pow4 + Output;
 
  
 
@@ -429,6 +429,10 @@ void setup() {
   analogWrite(M4D2, 255);
   delay(1);
 
+  Setpoint = 0;
+
+  //turn the PID on
+  myPID.SetMode(AUTOMATIC);
 
 }
 
@@ -443,6 +447,8 @@ void loop() {
   }
 
   Serial.print(angle);
+  Serial.print(" ");
+  Serial.print(Output);
   Serial.print(" ");
   Serial.println(IMUM);
   

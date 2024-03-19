@@ -1,4 +1,5 @@
 #include<elapsedMillis.h>
+#include <PID_v1.h>
 #define pi 3.14159265358
 
 elapsedMillis uartMillis;
@@ -7,9 +8,6 @@ int M1D1 = 0, M1D2 = 1, M2D1 = 3, M2D2 = 2, M3D1 = 5, M3D2 = 4, M4D1 = 6, M4D2 =
 double dir1, dir2, dir3, dir4, pow1, pow2, pow3, pow4, vel = 100; //variables usadas para calcular pwm de cada motor
 double IMUM; //offset del imu
 int wait = 0;
-const size_t dataLength = 5;
-int data[5] = {0,0,0,0,0};
-
 
 const byte startMarker = 0xFF;
 const byte endMarker = 0xFE;
@@ -23,11 +21,10 @@ int receivedPWM = 0;
 int receivedOrientationError = 0;
 int receivedMovementIndicator = 0;
 
-//variables del pid
-unsigned long lastTime;
-double Input, Output, SetPoint;
-double errSum, LastErr;
-double kp, ki, kd;
+double Setpoint, Input, Output;
+
+//Specify the links and initial tuning parameters
+PID myPID(&Input, &Output, &Setpoint,2,5,1,P_ON_M, DIRECT); 
 
 
 void receiveData() {
@@ -75,29 +72,6 @@ void processData() {
   receivedMovementIndicator = receivedPacket[3];
 }
 
-void compute()
-{ 
-  // tiempo desde el ultimo calculo
-  unsigned long now = millis();
-  double timeChange = (double)(now - lastTime);
-
-  //calcular error
-  double error = IMUM;
-  errSum += (error * timeChange);
-  double dErr = (error - LastErr) / timeChange;
-  //calcular output
-  Output = kp * error + ki * errSum + kd * dErr;
-  //guardar valores para siguientes calculos
-  LastErr= error;
-  lastTime = now;
-}
-
-void setTunings(double Kp, double Ki, double Kd)
-{
-  kp = Kp;
-  ki = Ki;
-  kd = Kd;
-}
 
 void motor1( int dir, int pow){      ////////// mover los motores indicando direcciÃ³n (1 fwd, -1 back) y cuanto poder asignarle
 
@@ -422,7 +396,10 @@ void setup() {
   analogWrite(M4D1, 0);
   analogWrite(M4D2, 255);
   delay(1);
+  Setpoint = 0;
 
+  //turn the PID on
+  myPID.SetMode(AUTOMATIC);
 
 }
 
