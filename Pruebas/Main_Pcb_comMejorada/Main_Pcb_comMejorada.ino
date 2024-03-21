@@ -32,6 +32,7 @@ enum State {
   WAIT_FOR_END
 };
 String inputString = ""; 
+bool stringComplete = false;
 
 // Variables globales para almacenar el ángulo e intensidad
 int globalAngle = 0;
@@ -65,23 +66,9 @@ void uartStart(){
   delay(1000); //tiempo para sincronizar
 
 }
-void extractXY(const String& dataStr, int& xValue, int& yValue) {
-  int xPos = dataStr.indexOf("X:") + 2; // Busca el inicio del valor de X.
-  int yPos = dataStr.indexOf("Y:") + 2; // Busca el inicio del valor de Y.
-  int endPos = dataStr.indexOf('\n'); // Encuentra el fin de la línea.
 
-  if (xPos > 0 && yPos > 0) {
-    String xStr = dataStr.substring(xPos, dataStr.indexOf(' ', xPos));
-    String yStr = dataStr.substring(yPos, endPos);
-
-    xValue = xStr.toInt(); // Convierte el substring de X a un entero.
-    yValue = yStr.toInt(); // Convierte el substring de Y a un entero.
-  }
-}
        
-void coordenadasConvertidas(){
-  
-}
+
 
 void getUartInfo(){
 
@@ -165,6 +152,7 @@ void getUartInfo(){
   if(Serial3.available())
   {
     angEsp = Serial3.read();
+    Serial.println(angEsp);
   }
 
   openMVSetup();
@@ -172,33 +160,36 @@ void getUartInfo(){
 }
 
 void openMVSetup(){
-  while (Serial4.available()) {
-    char inChar = (char)Serial4.read(); // Lee el próximo carácter.
-    inputString += inChar; // Añade el carácter a la cadena.
-
-    // Verifica si se ha recibido un salto de línea, indicando el fin del mensaje.
-    if (inChar == '\n') {
-      int xValue = 0, yValue = 0;
-      // Extrae los valores de X e Y.
-      extractXY(inputString, xValue, yValue);
-      
-      xOpenMV=xValue;
-      yOpenMV=yValue;
-
-      xOpenMV=xOpenMV-120;
-      yOpenMV=yOpenMV-105;
-
-      //Imprime los valores para depuración.
-      Serial.print("X: ");
-      Serial.print(xOpenMV);
-      Serial.print(", Y: ");
-      Serial.println(yOpenMV);
-
-      inputString = ""; // Limpia la cadena para el próximo mensaje.
+ while (Serial4.available()) {
+    char inChar = (char)Serial4.read(); // Lee el siguiente carácter disponible
+    inputString += inChar; // Añade el carácter a la cadena
+    if (inChar == '\n') { // Si el carácter es un salto de línea, marca el fin del mensaje
+      stringComplete = true;
     }
   }
+  procesarDatos();
 } 
+void procesarDatos(){
+   if (stringComplete) {
+    Serial.println(inputString); // Imprime el string completo
+    
+    // Variables para almacenar los valores X y Y
+    int vectorAmarilloX, vectorAmarilloY, vectorAzulX, vectorAzulY;
 
+    // Extraer los valores de los vectores del string
+    sscanf(inputString.c_str(), "YA:%d %d, BA:%d %d", &vectorAmarilloX, &vectorAmarilloY, &vectorAzulX, &vectorAzulY);
+
+    // Imprimir los valores para verificar
+    Serial.print("Vector Amarillo X: "); Serial.println(vectorAmarilloX);
+    Serial.print("Vector Amarillo Y: "); Serial.println(vectorAmarilloY);
+    Serial.print("Vector Azul X: "); Serial.println(vectorAzulX);
+    Serial.print("Vector Azul Y: "); Serial.println(vectorAzulY);
+
+    // Limpia la cadena para el próximo mensaje y resetea el indicador de string completo
+    inputString = "";
+    stringComplete = false;
+  }
+}
 
 void getImuInfo(){
   if(bno.getImpact()) //check if an high_g event occured (impact)
@@ -229,7 +220,7 @@ void sendToMotorController(int pwm, int orientationError, int movementIndicator,
     byte pwmByte = constrain(pwm, 0, 255);
     byte orientationErrorByte = constrain(orientationError, 0, 255);
     byte movementIndicatorByte = movementIndicator ? 1 : 0; // Asegurar que solo sea 0 o 1.
-    byte angleToMoveByte = constrain(globalAngle/2, 0, 255); 
+    byte angleToMoveByte = constrain(angleToMove, 0, 255); 
     
     // Calculamos el checksum como la suma simple de los datos
     byte checksum = pwmByte + orientationErrorByte + movementIndicatorByte + angleToMoveByte;
@@ -242,41 +233,44 @@ void sendToMotorController(int pwm, int orientationError, int movementIndicator,
     Serial5.write(angleToMoveByte);
     Serial5.write(checksum);
     Serial5.write(endMarker);
-    Serial.println(orientationErrorByte);
+    //Serial.println(orientationErrorByte);
     Serial.println(angleToMoveByte);
-    Serial.println(pwmByte);
+   // Serial.println(pwmByte);
 }
 
 void traslado(){
-  double distancia;
-  distancia=powf(20-xOpenMV, 2.0) + powf(10-yOpenMV, 2.0);
-  distancia=sqrt(distancia);
+  
 
-  double cateto;
-  cateto=yOpenMV-20;
-  globalAngle=atan2f(cateto,distancia);
-  globalAngle=globalAngle*180/3.1416;
-  Serial.println(globalAngle);
+  float trasladoX= 15 -xOpenMV;
+  float trasladoY=10 -yOpenMV;
+  float anguloTraslado;
+  
+  anguloTraslado=atan2f(trasladoY,trasladoX);
+  globalAngle=anguloTraslado*180/3.1416;
+ // Serial.println(globalAngle);
 
-  if (xOpenMV>=20 && xOpenMV<=40 && yOpenMV>=0 && yOpenMV<=-20){
+  if (xOpenMV>=10 && xOpenMV<=20 && yOpenMV>=5 && yOpenMV<=15){
     Serial.println("stop");
     globalAngle=400;
   }
   globalAngle = floor(globalAngle);
+ 
 }
 
 void jugar(){
   if(angEsp == 200 && stop == 0){
    sendToMotorController(100,ceroFake,0,globalAngle/2); 
+   Serial.print("mandado globalangle");
   }
 
   else if(angEsp != 200 && stop == 0 && anguloIR <= 180 && anguloIR >= 0){
     //angEsp = sumarAng(angEsp,*2);
     sendToMotorController(100,ceroFake,0, angEsp);
-    
+    Serial.print("mandado esp");
   }
   else{
     sendToMotorController(100,ceroFake,0, angEsp);
+    Serial.print("mandado angEsp");
   }
 }
 
@@ -317,12 +311,12 @@ void loop()
   getUartInfo();
 
   cero();
-  traslado();
+  //estado = 1;
   switch (estado){
     case 1:
       traslado();
       jugar();
-      Serial.println("jugarJuan");
+      //Serial.println("jugarJuan");
       break;
     case 2:
       Serial.println("calibrandoJuan");

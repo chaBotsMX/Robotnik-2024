@@ -1,5 +1,5 @@
 #include<elapsedMillis.h>
-#include <PID_v1.h>
+
 #define pi 3.14159265358
 
 elapsedMillis uartMillis;
@@ -21,10 +21,8 @@ int receivedAngle = 0; // Nuevo
 
 bool newData = false;
 
-double Setpoint, Input, Output;
 
 //Specify the links and initial tuning parameters
-PID myPID(&Input, &Output, &Setpoint,1,5,1,P_ON_M, DIRECT)
 
 
 void processReceivedData() {
@@ -44,7 +42,6 @@ void processReceivedData() {
 
   // Aquí podrías llamar a funciones para mover los motores basado en los nuevos datos
   if (newData && angle < 360) {
-    Input = IMUM;
     mover(angle); // Asumiendo que mover() ajusta los motores basándose en `angle` y otros datos globales
     newData = false; // Asegúrate de restablecer `newData`
   }
@@ -286,7 +283,7 @@ void motores(int num, int pot){
 }
 
 void mover ( int angle){      ///////////Funcion para calcular en que direccion moverte con omnidireccional (angulo y tiempo)
-
+  int Output;
   Serial.print(angle);
   Serial.print(" ");
   Serial.println(IMUM);
@@ -318,7 +315,7 @@ void mover ( int angle){      ///////////Funcion para calcular en que direccion 
 
  // Serial.println( IMUM );
 
-  myPID.Compute();
+  Output = IMUM * 1.1;  
 
   pow1=pow1 + Output;
   pow2=pow2 - Output;
@@ -429,10 +426,10 @@ void setup() {
   analogWrite(M4D2, 255);
   delay(1);
 
-  Setpoint = 0;
+
 
   //turn the PID on
-  myPID.SetMode(AUTOMATIC);
+
 
 }
 
@@ -447,8 +444,6 @@ void loop() {
   }
 
   Serial.print(angle);
-  Serial.print(" ");
-  Serial.print(Output);
   Serial.print(" ");
   Serial.println(IMUM);
   
