@@ -53,7 +53,7 @@ void loop() {
   Serial.print(", Intensidad: ");
   Serial.println(intensidad);
   // Ajustar si es necesario
-  if(angle < 0 || angle > 360) angle = 200;
+  if(angle < 0 || angle > 360) angle = 400;
   if(intensidad < 0) intensidad = 0; // Asegura que la intensidad sea al menos 0
   if(intensidad > 1000) intensidad = 1000; // Asegura que la intensidad no exceda 1000
 
@@ -75,7 +75,7 @@ void loop() {
   Serial1.write(endMarker);
 
 
-
+  digitalWrite(25,HIGH);
   // Debugging
   }
 }

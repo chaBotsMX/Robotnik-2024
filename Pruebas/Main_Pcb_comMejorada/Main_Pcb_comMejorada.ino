@@ -12,6 +12,9 @@ int data5[5] = {0,0,0,0,0}; // byte 1 y 2 son para enviar el anguloIR de la pelo
 
 int pelota1 = 0, pelota2 = 0, orientacion1 = 0, orientacion2 = 0, anguloIR = 200; // declaramos los bytes para poder trabajar con ellos 
 
+#define intensidad_constante 140
+#define intensidad_cuadrado 19600
+
 int IMU, norte; //varaibles usadas para los calculos del imu
 
 int estado, intensidad = 0;
@@ -38,6 +41,7 @@ bool stringComplete = false;
 int globalAngle = 0;
 int globalIntensity = 0;
 int localAngle = 0;
+int localIntensity=0;
 // Estado inicial
 State currentState = WAIT_FOR_START;
 
@@ -100,11 +104,15 @@ void getUartInfo(){
         break;
 
       case READ_INTENSITY_HIGH:
+        localIntensity=incomingByte*255;
+
         calculatedChecksum += incomingByte;
         currentState = READ_INTENSITY_LOW;
         break;
 
       case READ_INTENSITY_LOW:
+        localIntensity+=incomingByte;
+
         calculatedChecksum += incomingByte;
         currentState = READ_CHECKSUM;
         break;
@@ -123,9 +131,15 @@ void getUartInfo(){
       case WAIT_FOR_END:
         if (incomingByte == 254) {
           // Mensaje completo y correcto, procesa los datos
-         // Serial.println("Mensaje recibido correctamente.");
+          //Serial.println("Mensaje recibido correctamente.");
           // Aquí iría la lógica para procesar los datos recibidos
-          globalAngle = localAngle;
+          if (localAngle==400){
+            globalAngle=4001;
+          }
+          else{
+            globalAngle = ajusteAngulo(localAngle, localIntensity);
+          }
+          globalIntensity=localIntensity;
           //Serial.println(globalAngle);
           irTimer = 0;
         } else {
@@ -152,7 +166,7 @@ void getUartInfo(){
   if(Serial3.available())
   {
     angEsp = Serial3.read();
-    Serial.println(angEsp);
+    //Serial.println(angEsp);
   }
 
   openMVSetup();
@@ -234,7 +248,7 @@ void sendToMotorController(int pwm, int orientationError, int movementIndicator,
     Serial5.write(checksum);
     Serial5.write(endMarker);
     //Serial.println(orientationErrorByte);
-    Serial.println(angleToMoveByte);
+    //Serial.println(angleToMoveByte);
    // Serial.println(pwmByte);
 }
 
@@ -257,20 +271,42 @@ void traslado(){
  
 }
 
+int ajusteAngulo(int x, int intensidad){
+  int anguloModificado = x;
+  if(anguloModificado<=350 && anguloModificado >=30){
+    anguloModificado>=180 ? x=1 : x=0; 
+    anguloModificado>=180 ? anguloModificado=360.00-anguloModificado : anguloModificado=anguloModificado;
+    double t=sqrt(((intensidad*intensidad)+(intensidad_cuadrado))-2*(intensidad*intensidad_constante)*cos(anguloModificado*M_PI/180.00));
+    double d=asin(((intensidad*sin(anguloModificado*M_PI/180.00))/t))*180.00/M_PI;
+    if(!x)
+      anguloModificado=180.00-(180.00-anguloModificado-d);
+    else
+      anguloModificado=180.00+(180.00-anguloModificado-d);
+
+    return anguloModificado;
+  } else {
+    return 0;
+  }
+}
+
+
+
+
+
 void jugar(){
   if(angEsp == 200 && stop == 0){
    sendToMotorController(100,ceroFake,0,globalAngle/2); 
-   Serial.print("mandado globalangle");
+  // Serial.print("mandado globalangle");
   }
 
   else if(angEsp != 200 && stop == 0 && anguloIR <= 180 && anguloIR >= 0){
     //angEsp = sumarAng(angEsp,*2);
     sendToMotorController(100,ceroFake,0, angEsp);
-    Serial.print("mandado esp");
+    //Serial.print("mandado esp");
   }
   else{
     sendToMotorController(100,ceroFake,0, angEsp);
-    Serial.print("mandado angEsp");
+    //Serial.print("mandado angEsp");
   }
 }
 
@@ -311,17 +347,18 @@ void loop()
   getUartInfo();
 
   cero();
+  Serial.println(globalAngle);
   //estado = 1;
   switch (estado){
-    case 1:
-      traslado();
-      jugar();
-      //Serial.println("jugarJuan");
-      break;
-    case 2:
-      Serial.println("calibrandoJuan");
+    case 1: //setMode
       calibracionImu=IMU;
       break;
+
+    case 2: //partido
+      jugar();
+  
+      break;
+
      case 3:
       Serial.println("calibrarJuanEnLaPista");
       
