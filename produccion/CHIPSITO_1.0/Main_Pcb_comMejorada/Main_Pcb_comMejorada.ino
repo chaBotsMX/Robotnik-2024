@@ -3,13 +3,14 @@
 //declaramos el tamaño de los array a enviar, son 5, pero para organizar los declaramos cuando se necesiten
 const size_t dataLength1 = 2;
 const size_t dataLength5 = 5;
-
+int pwm = 150;
+int sendPWM;
 int stop = 0;
 int angEsp = 200;
 int data1[2] = {0,0}; //Angulo de la pelota IR partido en 2 bytes
 
 int data5[5] = {0,0,0,0,0}; // byte 1 y 2 son para enviar el anguloIR de la pelota, 3 y 4 el offset del imu y el 5 para enviar el pwm maximo 
-
+int xCord, yCord;
 int pelota1 = 0, pelota2 = 0, orientacion1 = 0, orientacion2 = 0, anguloIR = 200; // declaramos los bytes para poder trabajar con ellos 
 
 #define intensidad_constante 140
@@ -23,7 +24,7 @@ int calibracionImu;
 
 int ceroFake;
 
-int xOpenMV; int yOpenMV;
+int xAzul,  yAzul, xAmarillo, yAmarillo;
 int communicationMV = 1;
 enum State {
   WAIT_FOR_START,
@@ -36,9 +37,9 @@ enum State {
 };
 String inputString = ""; 
 bool stringComplete = false;
-
+bool peligro = false;
 // Variables globales para almacenar el ángulo e intensidad
-int globalAngle = 0;
+int globalAngle = 400;
 int globalIntensity = 0;
 int localAngle = 0;
 int localIntensity=0;
@@ -133,14 +134,15 @@ void getUartInfo(){
           // Mensaje completo y correcto, procesa los datos
           //Serial.println("Mensaje recibido correctamente.");
           // Aquí iría la lógica para procesar los datos recibidos
-          if (localAngle==400){
-            globalAngle=4001;
+          if(localAngle > 360){
+            globalAngle = 400;
           }
           else{
-            globalAngle = ajusteAngulo(localAngle, localIntensity);
+            globalAngle = localAngle;
           }
+     
           globalIntensity=localIntensity;
-          //Serial.println(globalAngle);
+          Serial.println(globalAngle);
           irTimer = 0;
         } else {
           // Fin de mensaje incorrecto, intenta resincronizar
@@ -153,7 +155,7 @@ void getUartInfo(){
   else{
     if(irTimer > 5){
     globalAngle= 400;
-   // Serial.println(globalAngle);
+    Serial.println(globalAngle);
     }
   }
 
@@ -194,10 +196,20 @@ void procesarDatos(){
     sscanf(inputString.c_str(), "YA:%d %d, BA:%d %d", &vectorAmarilloX, &vectorAmarilloY, &vectorAzulX, &vectorAzulY);
 
     // Imprimir los valores para verificar
-    Serial.print("Vector Amarillo X: "); Serial.println(vectorAmarilloX);
-    Serial.print("Vector Amarillo Y: "); Serial.println(vectorAmarilloY);
-    Serial.print("Vector Azul X: "); Serial.println(vectorAzulX);
-    Serial.print("Vector Azul Y: "); Serial.println(vectorAzulY);
+    if(vectorAmarilloX == 0 && vectorAmarilloY == 0 || vectorAzulX == 0 && vectorAzulY == 0){
+      peligro = true;
+    }
+    else{
+      xAmarillo = vectorAmarilloX;
+      yAmarillo = vectorAmarilloY;
+      xAzul = vectorAzulX;
+      yAzul = vectorAzulY;
+      peligro = false;
+    }
+   // Serial.print("Vector Amarillo X: "); Serial.println(vectorAmarilloX);
+    //Serial.print("Vector Amarillo Y: "); Serial.println(vectorAmarilloY);
+    //Serial.print("Vector Azul X: "); Serial.println(vectorAzulX);
+    //Serial.print("Vector Azul Y: "); Serial.println(vectorAzulY);
 
     // Limpia la cadena para el próximo mensaje y resetea el indicador de string completo
     inputString = "";
@@ -247,32 +259,24 @@ void sendToMotorController(int pwm, int orientationError, int movementIndicator,
     Serial5.write(angleToMoveByte);
     Serial5.write(checksum);
     Serial5.write(endMarker);
-    //Serial.println(orientationErrorByte);
-    //Serial.println(angleToMoveByte);
-   // Serial.println(pwmByte);
+   /* Serial.println(orientationErrorByte);
+    Serial.println(angleToMoveByte);
+    Serial.println(pwmByte);*/
 }
 
-void traslado(){
-  
+int traslado(){
+  int xCentro, yCentro, angCentro;
+  xCentro = xAzul + xAmarillo;
+  yCentro = yAzul + yAmarillo;
+  angCentro = atan2(yCentro, xCentro);
+  angCentro *= 180/3.1416 ;
 
-  float trasladoX= 15 -xOpenMV;
-  float trasladoY=10 -yOpenMV;
-  float anguloTraslado;
-  
-  anguloTraslado=atan2f(trasladoY,trasladoX);
-  globalAngle=anguloTraslado*180/3.1416;
- // Serial.println(globalAngle);
-
-  if (xOpenMV>=10 && xOpenMV<=20 && yOpenMV>=5 && yOpenMV<=15){
-    Serial.println("stop");
-    globalAngle=400;
-  }
-  globalAngle = floor(globalAngle);
- 
+  return angCentro;
 }
 
 int ajusteAngulo(int x, int intensidad){
   int anguloModificado = x;
+  if (globalAngle != 400){
   if(anguloModificado<=350 && anguloModificado >=30){
     anguloModificado>=180 ? x=1 : x=0; 
     anguloModificado>=180 ? anguloModificado=360.00-anguloModificado : anguloModificado=anguloModificado;
@@ -287,6 +291,10 @@ int ajusteAngulo(int x, int intensidad){
   } else {
     return 0;
   }
+  }
+  else{
+    return 400;
+  }
 }
 
 
@@ -294,20 +302,24 @@ int ajusteAngulo(int x, int intensidad){
 
 
 void jugar(){
-  if(angEsp == 200 && stop == 0){
-   sendToMotorController(100,ceroFake,0,globalAngle/2); 
-  // Serial.print("mandado globalangle");
-  }
+  //Serial.print("pwm :"); Serial.println(sendPWM);
 
-  else if(angEsp != 200 && stop == 0 && anguloIR <= 180 && anguloIR >= 0){
-    //angEsp = sumarAng(angEsp,*2);
-    sendToMotorController(100,ceroFake,0, angEsp);
-    //Serial.print("mandado esp");
-  }
-  else{
-    sendToMotorController(100,ceroFake,0, angEsp);
-    //Serial.print("mandado angEsp");
-  }
+  
+    if(angEsp == 200 && stop == 0){
+      sendToMotorController(sendPWM,ceroFake,0,ajusteAngulo(globalAngle,globalIntensity)/2); 
+    // Serial.print("mandado globalangle");
+    }
+
+    else if(angEsp != 200 && stop == 0 && anguloIR <= 180 && anguloIR >= 0){
+      //angEsp = sumarAng(angEsp,*2);
+      sendToMotorController(sendPWM,ceroFake,0, angEsp);
+      //Serial.print("mandado esp");
+    }
+    else{
+      sendToMotorController(sendPWM,ceroFake,0, angEsp);
+      //Serial.print("mandado angEsp");
+    }
+  
 }
 
 int sumarAng(int ang1, int  ang2){
@@ -316,6 +328,21 @@ int sumarAng(int ang1, int  ang2){
   y = sin(ang1) + sin(ang2);
   return atan2(y,x);
 }
+void coordenadas(){
+  xCord = xAzul + xAmarillo;
+  yCord = yAzul + xAzul;
+  xCord /= 2;
+  yCord /= 2;  
+  xCord -= 113;
+  yCord -= 165;
+  //Serial.print("posicionX: "); Serial.println(xCord);
+  //Serial.print("posicionY: "); Serial.println(yCord);
+  
+}
+void getPWM(){
+  sendPWM = pwm - abs(xCord);
+}
+
 
 void setup()
 {
@@ -345,10 +372,10 @@ void loop()
 {
   getImuInfo();
   getUartInfo();
-
+  coordenadas();
   cero();
-  Serial.println(globalAngle);
-  //estado = 1;
+  getPWM();
+  //Serial.println(traslado());
   switch (estado){
     case 1: //setMode
       calibracionImu=IMU;

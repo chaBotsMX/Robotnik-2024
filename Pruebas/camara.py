@@ -4,7 +4,7 @@ from pyb import UART
 
 # Color Tracking Thresholds
 amarillo = [(43, 84, -25, 49, 13, 61)]
-azul = [(30, 55, -18, 26, -52, -19)]
+azul = [(0, 100, -72, 48, -83, -28)]
 
 sensor.reset()
 sensor.set_pixformat(sensor.RGB565)
@@ -13,14 +13,15 @@ sensor.skip_frames(time=2000)
 sensor.set_contrast(2)
 sensor.set_brightness(-3)
 sensor.set_saturation(3)
+sensor.skip_frames(time=1000)
 sensor.set_auto_gain(False)
 sensor.set_auto_whitebal(False)
 
 uart = UART(1, 9600, timeout_char=1000)
 
-roi = (60, 15, 220, 240)
+roi = (55, 0, 230, 240)
 sensor.set_windowing(roi)
-
+sensor.skip_frames(time=1000)
 while True:
     img = sensor.snapshot()
     datos_envio = ""
@@ -47,6 +48,7 @@ while True:
     if max_blob_azul:
         datos_envio += "BA:{} {}\n".format(max_blob_azul.cx(), max_blob_azul.cy())
         img.draw_cross(max_blob_azul.cx(), max_blob_azul.cy())
+        print(max_blob_azul.cx(), max_blob_azul.cy())
     else:
         datos_envio += "BA:0 0\n"
 
