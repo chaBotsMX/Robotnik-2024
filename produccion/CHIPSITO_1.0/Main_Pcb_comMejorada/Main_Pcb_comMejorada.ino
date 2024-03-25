@@ -142,7 +142,7 @@ void getUartInfo(){
           }
      
           globalIntensity=localIntensity;
-          Serial.println(globalAngle);
+         // Serial.println(globalAngle);
           irTimer = 0;
         } else {
           // Fin de mensaje incorrecto, intenta resincronizar
@@ -155,7 +155,7 @@ void getUartInfo(){
   else{
     if(irTimer > 5){
     globalAngle= 400;
-    Serial.println(globalAngle);
+    //Serial.println(globalAngle);
     }
   }
 
@@ -187,7 +187,7 @@ void openMVSetup(){
 } 
 void procesarDatos(){
    if (stringComplete) {
-    Serial.println(inputString); // Imprime el string completo
+   // Serial.println(inputString); // Imprime el string completo
     
     // Variables para almacenar los valores X y Y
     int vectorAmarilloX, vectorAmarilloY, vectorAzulX, vectorAzulY;
@@ -200,16 +200,16 @@ void procesarDatos(){
       peligro = true;
     }
     else{
-      xAmarillo = vectorAmarilloX;
-      yAmarillo = vectorAmarilloY;
-      xAzul = vectorAzulX;
-      yAzul = vectorAzulY;
+      xAmarillo = vectorAmarilloX - 87;
+      yAmarillo = vectorAmarilloY - 120;
+      xAzul = vectorAzulX - 87;
+      yAzul = vectorAzulY - 120;
       peligro = false;
     }
-   // Serial.print("Vector Amarillo X: "); Serial.println(vectorAmarilloX);
-    //Serial.print("Vector Amarillo Y: "); Serial.println(vectorAmarilloY);
-    //Serial.print("Vector Azul X: "); Serial.println(vectorAzulX);
-    //Serial.print("Vector Azul Y: "); Serial.println(vectorAzulY);
+    Serial.print("Vector Amarillo X: "); Serial.println(vectorAmarilloX);
+    Serial.print("Vector Amarillo Y: "); Serial.println(vectorAmarilloY);
+    Serial.print("Vector Azul X: "); Serial.println(vectorAzulX);
+    Serial.print("Vector Azul Y: "); Serial.println(vectorAzulY);
 
     // Limpia la cadena para el próximo mensaje y resetea el indicador de string completo
     inputString = "";
@@ -226,7 +226,7 @@ void getImuInfo(){
   }
   IMU = bno.getHeading(); // se actualiza informacion del imu
   //si se registro un impacto en el imu entonces se cargan los valores calibrados en el eeprom para evitar error en el imu
-  //Serial.println(IMU);
+ // Serial.println(IMU);
 }
 
 void cero(){
@@ -259,9 +259,9 @@ void sendToMotorController(int pwm, int orientationError, int movementIndicator,
     Serial5.write(angleToMoveByte);
     Serial5.write(checksum);
     Serial5.write(endMarker);
-   /* Serial.println(orientationErrorByte);
-    Serial.println(angleToMoveByte);
-    Serial.println(pwmByte);*/
+   // Serial.println(orientationErrorByte);
+    //Serial.println(angleToMoveByte);
+    //Serial.println(pwmByte);
 }
 
 int traslado(){
@@ -343,6 +343,22 @@ void getPWM(){
   sendPWM = pwm - abs(xCord);
 }
 
+int getGoalAngle(){
+  float angleGoal1 = atan2(yAzul,xAzul);
+  float angleGoal2 = atan2(yAmarillo,xAmarillo);
+  angleGoal1 *= 180/3.1416;
+  angleGoal2 *= 180/3.1416;
+  Serial.print("azul: "); Serial.println(angleGoal1+90);
+  Serial.print("amarillo: "); Serial.println(angleGoal2+90);
+  if(angleGoal1 < -90 && angleGoal1 > 90){
+  
+    return angleGoal1;
+  }
+  else{
+   
+    return angleGoal2;
+  }
+}
 
 void setup()
 {
@@ -375,6 +391,7 @@ void loop()
   coordenadas();
   cero();
   getPWM();
+  Serial.println(getGoalAngle());
   //Serial.println(traslado());
   switch (estado){
     case 1: //setMode
@@ -418,5 +435,5 @@ void loop()
   
  
  //Serial.println(data5[0] * 2);
- //delay(100);
+ delay(5);
 }
