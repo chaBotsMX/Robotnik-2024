@@ -282,7 +282,7 @@ int ajusteAngulo(int x, int intensidad){
   if (globalAngle != 400){
     if(x < 180 && x > 25){
       
-      return x+90*dis/900;
+      return x+110*dis/900;
     }
     else if(x >= 180 && x < 330){
       return x-90*dis/900;
