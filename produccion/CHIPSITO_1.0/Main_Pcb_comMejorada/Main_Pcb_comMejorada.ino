@@ -206,10 +206,10 @@ void procesarDatos(){
       yAzul = vectorAzulY - 120;
       peligro = false;
     }
-    Serial.print("Vector Amarillo X: "); Serial.println(vectorAmarilloX);
-    Serial.print("Vector Amarillo Y: "); Serial.println(vectorAmarilloY);
-    Serial.print("Vector Azul X: "); Serial.println(vectorAzulX);
-    Serial.print("Vector Azul Y: "); Serial.println(vectorAzulY);
+   // Serial.print("Vector Amarillo X: "); Serial.println(vectorAmarilloX);
+   // Serial.print("Vector Amarillo Y: "); Serial.println(vectorAmarilloY);
+   // Serial.print("Vector Azul X: "); Serial.println(vectorAzulX);
+    //Serial.print("Vector Azul Y: "); Serial.println(vectorAzulY);
 
     // Limpia la cadena para el próximo mensaje y resetea el indicador de string completo
     inputString = "";
@@ -259,9 +259,9 @@ void sendToMotorController(int pwm, int orientationError, int movementIndicator,
     Serial5.write(angleToMoveByte);
     Serial5.write(checksum);
     Serial5.write(endMarker);
-   // Serial.println(orientationErrorByte);
-    //Serial.println(angleToMoveByte);
-    //Serial.println(pwmByte);
+    Serial.println(orientationErrorByte);
+    Serial.println(angleToMoveByte);
+    Serial.println(pwmByte);
 }
 
 int traslado(){
@@ -276,21 +276,20 @@ int traslado(){
 
 int ajusteAngulo(int x, int intensidad){
   int anguloModificado = x;
+  int dis;
+  dis = intensidad -750;
+  dis = constrain(dis,300,750);
   if (globalAngle != 400){
-  if(anguloModificado<=350 && anguloModificado >=30){
-    anguloModificado>=180 ? x=1 : x=0; 
-    anguloModificado>=180 ? anguloModificado=360.00-anguloModificado : anguloModificado=anguloModificado;
-    double t=sqrt(((intensidad*intensidad)+(intensidad_cuadrado))-2*(intensidad*intensidad_constante)*cos(anguloModificado*M_PI/180.00));
-    double d=asin(((intensidad*sin(anguloModificado*M_PI/180.00))/t))*180.00/M_PI;
-    if(!x)
-      anguloModificado=180.00-(180.00-anguloModificado-d);
-    else
-      anguloModificado=180.00+(180.00-anguloModificado-d);
-
-    return anguloModificado;
-  } else {
-    return 0;
-  }
+    if(x < 180 && x > 25){
+      
+      return x+90*dis/900;
+    }
+    else if(x >= 180 && x < 330){
+      return x-90*dis/900;
+    }
+    else {
+      return 0;
+    }
   }
   else{
     return 400;
@@ -331,16 +330,14 @@ int sumarAng(int ang1, int  ang2){
 void coordenadas(){
   xCord = xAzul + xAmarillo;
   yCord = yAzul + xAzul;
-  xCord /= 2;
-  yCord /= 2;  
-  xCord -= 113;
-  yCord -= 165;
+  
   //Serial.print("posicionX: "); Serial.println(xCord);
   //Serial.print("posicionY: "); Serial.println(yCord);
   
 }
 void getPWM(){
-  sendPWM = pwm - abs(xCord);
+  //sendPWM = pwm - abs(xCord);
+  sendPWM = 100;
 }
 
 int getGoalAngle(){
@@ -348,8 +345,8 @@ int getGoalAngle(){
   float angleGoal2 = atan2(yAmarillo,xAmarillo);
   angleGoal1 *= 180/3.1416;
   angleGoal2 *= 180/3.1416;
-  Serial.print("azul: "); Serial.println(angleGoal1+90);
-  Serial.print("amarillo: "); Serial.println(angleGoal2+90);
+ // Serial.print("azul: "); Serial.println(angleGoal1+90);
+  //Serial.print("amarillo: "); Serial.println(angleGoal2+90);
   if(angleGoal1 < -90 && angleGoal1 > 90){
   
     return angleGoal1;
@@ -391,8 +388,9 @@ void loop()
   coordenadas();
   cero();
   getPWM();
-  Serial.println(getGoalAngle());
+  Serial.println(globalIntensity);
   //Serial.println(traslado());
+  
   switch (estado){
     case 1: //setMode
       calibracionImu=IMU;
@@ -435,5 +433,5 @@ void loop()
   
  
  //Serial.println(data5[0] * 2);
- delay(5);
+
 }

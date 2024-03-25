@@ -3,7 +3,7 @@ import time
 from pyb import UART
 
 # Color Tracking Thresholds
-amarillo = [(30, 63, -9, 36, 17, 80)`]
+amarillo = [(30, 63, -9, 36, 17, 80)]
 azul = [(0, 100, -72, 48, -83, -28)]
 
 sensor.reset()
