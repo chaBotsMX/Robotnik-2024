@@ -4,8 +4,8 @@ import pyb
 from pyb import UART
 
 # Color Tracking Thresholds
-amarillo = [(43, 84, 12, 58, 39, 89),]
-azul = [(30, 55, -18, 26, -52, -19),]
+thresholds = [(43, 84, 12, 58, 39, 89),
+             (30, 55, -18, 26, -52, -19)]
 
 sensor.reset()
 sensor.set_pixformat(sensor.RGB565)
@@ -21,46 +21,29 @@ sensor.skip_frames(time=2000)
 uart = UART(1, 9600, timeout_char=1000)
 
 roi = (60, 120  , 220, 240)
+red_led = pyb.LED(2)
 
 # Establece el ROI
 sensor.set_windowing(roi)
 
-
 while True:
-   img = sensor.snapshot()
+    img = sensor.snapshot()
 
-   # Inicializar variables para almacenar el blob más grande
-   max_area_amarillo = 0
-   max_blob_amarillo = None
-   max_area_azul = 0
-   max_blob_azul = None
+    # Inicializar variables para almacenar el blob más grande
+    max_area = 0
+    max_blob = None
 
-   # Buscar el blob más grande de color amarillo
-   for blob in img.find_blobs(amarillo, pixels_threshold=20, area_threshold=20, merge=True):
-       if blob.area() > max_area_amarillo:
-           max_area_amarillo = blob.area()
-           max_blob_amarillo = blob
+    # Buscar el blob más grande entre todos los colores
+    for blob in img.find_blobs(thresholds, pixels_threshold=20, area_threshold=20, merge=True):
+        if blob.area() > max_area:
+            max_area = blob.area()
+            max_blob = blob
 
-   # Buscar el blob más grande de color azul
-   for blob in img.find_blobs(azul, pixels_threshold=100, area_threshold=100, merge=True):
-       if blob.area() > max_area_azul:
-           max_area_azul = blob.area()
-           max_blob_azul = blob
-
-   # Calcular el vector hacia el blob más grande de cada color
-   if max_blob_amarillo:
-       vectorAmarilloX = max_blob_amarillo.cx()
-       vectorAmarilloY = max_blob_amarillo.cy()
-       img.draw_cross(max_blob_amarillo.cx(), max_blob_amarillo.cy())
-   else:
-       vectorAmarilloX = 0
-       vectorAmarilloY = 0
-
-   if max_blob_azul:
-       vectorAzulX = max_blob_azul.cx()
-       vectorAzulY = max_blob_azul.cy()
-       img.draw_cross(max_blob_azul.cx(), max_blob_azul.cy())
-   else:
-       vectorAzulX = 0
-       vectorAzulY = 0
+    # Actuar en base al blob más grande encontrado
+    if max_blob:
+        img.draw_cross(max_blob.cx(),max_blob.cy())
+        # Convierte las coordenadas a string
+        data_str = "{},{}".format(max_blob.cx(), max_blob.cy())
+        uart.write(data_str + '\n')  # Añade un salto de línea para delimitar los mensajes
+        #red_led.on()
 

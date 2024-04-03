@@ -48,10 +48,10 @@ void loop() {
     } else {
       intensidad = lastInten;  // Utiliza la última intensidad válida si la nueva es 0
     }
-  /*Serial.print("Ángulo: ");
+  Serial.print("Ángulo: ");
   Serial.print(angle);
   Serial.print(", Intensidad: ");
-  Serial.println(intensidad);*/
+  Serial.println(intensidad);
   // Ajustar si es necesario
   if(angle < 0 || angle > 360) angle = 400;
   if(intensidad < 0) intensidad = 0; // Asegura que la intensidad sea al menos 0

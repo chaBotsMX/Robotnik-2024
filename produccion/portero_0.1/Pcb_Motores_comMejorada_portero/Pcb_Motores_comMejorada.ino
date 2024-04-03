@@ -1,45 +1,77 @@
 #include<elapsedMillis.h>
+#include <PID_v1.h>
 #define pi 3.14159265358
 
 elapsedMillis uartMillis;
 int angle;
 int M1D1 = 0, M1D2 = 1, M2D1 = 3, M2D2 = 2, M3D1 = 5, M3D2 = 4, M4D1 = 6, M4D2 = 7; //pines de los motores
-double dir1, dir2, dir3, dir4, pow1, pow2, pow3, pow4, vel = 125; //variables usadas para calcular pwm de cada motor
+double dir1, dir2, dir3, dir4, pow1, pow2, pow3, pow4, vel = 100; //variables usadas para calcular pwm de cada motor
 double IMUM; //offset del imu
 int wait = 0;
-const size_t dataLength = 5;
-int data[5] = {0,0,0,0,0};
+
+const byte startMarker = 0xFF;
+const byte endMarker = 0xFE;
+const size_t packetSize = 5; // Incluyendo el checksum
+
+byte receivedPacket[packetSize] = {0};
+bool newData = false;
+
+// Variables para almacenar los datos recibidos
+int receivedPWM = 0;
+int receivedOrientationError = 0;
+int receivedMovementIndicator = 0;
+
+double Setpoint, Input, Output;
+
+//Specify the links and initial tuning parameters
+PID myPID(&Input, &Output, &Setpoint,2,5,1,P_ON_M, DIRECT); 
 
 
-//variables del pid
-unsigned long lastTime;
-double Input, Output, SetPoint;
-double errSum, LastErr;
-double kp, ki, kd;
+void receiveData() {
+  static byte ndx = 0;
+  byte startByte, rc;
 
-void compute()
-{ 
-  // tiempo desde el ultimo calculo
-  unsigned long now = millis();
-  double timeChange = (double)(now - lastTime);
+  while (Serial1.available() > 0 && !newData) {
+    rc = Serial1.read();
 
-  //calcular error
-  double error = IMUM;
-  errSum += (error * timeChange);
-  double dErr = (error - LastErr) / timeChange;
-  //calcular output
-  Output = kp * error + ki * errSum + kd * dErr;
-  //guardar valores para siguientes calculos
-  LastErr= error;
-  lastTime = now;
+    if (ndx == 0 && rc != startMarker) {
+      return; // Si no es el byte de inicio, ignora este byte
+    }
+
+    if (ndx > 0 && ndx < packetSize - 1) {
+      // Verifica el checksum solo si no es el byte de inicio o fin
+      receivedPacket[ndx] = rc;
+    }
+    
+    ndx++;
+    
+    if (ndx == packetSize) {
+      ndx = 0; // Restablecer para el próximo paquete
+      byte checksum = calculateChecksum(receivedPacket, packetSize - 2); // -2 para excluir el checksum y endMarker
+      if (rc == endMarker && checksum == receivedPacket[packetSize - 2]) {
+        newData = true;
+      } else {
+        Serial.println("Error en checksum o paquete"); // Manejar errores según sea necesario
+      }
+    }
+  }
 }
 
-void setTunings(double Kp, double Ki, double Kd)
-{
-  kp = Kp;
-  ki = Ki;
-  kd = Kd;
+byte calculateChecksum(byte *packet, size_t len) {
+    byte checksum = 0;
+    for (size_t i = 0; i < len; i++) {
+        checksum += packet[i];
+    }
+    return checksum;
 }
+
+void processData() {
+  receivedPWM = receivedPacket[1];
+  // Mapear el error de orientación de vuelta a -180 a 180
+  receivedOrientationError =  receivedPacket[2];
+  receivedMovementIndicator = receivedPacket[3];
+}
+
 
 void motor1( int dir, int pow){      ////////// mover los motores indicando direcciÃ³n (1 fwd, -1 back) y cuanto poder asignarle
 
@@ -364,19 +396,29 @@ void setup() {
   analogWrite(M4D1, 0);
   analogWrite(M4D2, 255);
   delay(1);
+  Setpoint = 0;
 
+  //turn the PID on
+  myPID.SetMode(AUTOMATIC);
 
 }
 
 void loop() {
+     receiveData();
   if(Serial1.available() >= dataLength * sizeof(data[0])) //si hay informacion nueva se lee y se mueve
   { 
-    digitalWrite(25,HIGH); // se prende para debugear
-    Serial1.readBytes((byte*)data, dataLength * sizeof(data[0]));
-    angle = data[0] * 2; //se interpreta la informacion
-    IMUM  = data[2] + data[3];
-    wait = data[4];
-    vel = data[1];
+
+  if (newData) {
+    processData();
+    // Imprimir los datos recibidos para verificar
+    Serial.print("PWM: ");
+    Serial.print(receivedPWM);
+    Serial.print(", Error de Orientación: ");
+    Serial.print(receivedOrientationError);
+    Serial.print(", Indicador de Movimiento: ");
+    Serial.println(receivedMovementIndicator);
+    newData = false; // Restablecer la bandera para la próxima lectura
+  }
     if(IMUM >= 180) //se calcula el offset del imu 
     {
       IMUM = IMUM -360;

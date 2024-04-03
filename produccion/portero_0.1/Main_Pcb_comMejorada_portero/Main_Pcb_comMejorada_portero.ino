@@ -3,7 +3,7 @@
 //declaramos el tamaño de los array a enviar, son 5, pero para organizar los declaramos cuando se necesiten
 const size_t dataLength1 = 2;
 const size_t dataLength5 = 5;
-int pwm = 150;
+int pwm = 100;
 int sendPWM;
 int stop = 0;
 int angEsp = 200;
@@ -26,8 +26,8 @@ int estado, intensidad = 0;
 int calibracionImu;
 
 int ceroFake;
-
-int xAzul,  yAzul, xAmarillo, yAmarillo;
+int setX, setY;
+int xPorteria,  yPorteria;
 int communicationMV = 1;
 enum State {
   WAIT_FOR_START,
@@ -179,46 +179,43 @@ void getUartInfo(){
 }
 
 void openMVSetup(){
- while (Serial4.available()) {
-    char inChar = (char)Serial4.read(); // Lee el siguiente carácter disponible
-    inputString += inChar; // Añade el carácter a la cadena
-    if (inChar == '\n') { // Si el carácter es un salto de línea, marca el fin del mensaje
-      stringComplete = true;
+static String inputString = "";  // Un String para acumular los caracteres recibidos
+  while (Serial4.available()) {
+    char inChar = (char)Serial4.read();
+    inputString += inChar;
+
+    // Si recibes un salto de línea, has recibido un mensaje completo
+    if (inChar == '\n') {
+      inputString.trim();  // Elimina espacios en blanco y el salto de línea
+
+      // Aquí procesas el mensaje
+      Serial.print("Recibido: ");
+      Serial.println(inputString);
+
+      // Divide el string por la coma para extraer X e Y
+      int commaIndex = inputString.indexOf(',');
+      if (commaIndex != -1) {
+        String xStr = inputString.substring(0, commaIndex);
+        String yStr = inputString.substring(commaIndex + 1);
+
+        int x = xStr.toInt();
+        int y = yStr.toInt();
+
+        // Haz algo con x e y aquí
+        Serial.print("X: ");
+        Serial.print(x);
+        xPorteria = x;
+        Serial.print(", Y: ");
+        yPorteria = y;
+        Serial.println(y);
+      }
+
+      // Limpia el string para el próximo mensaje
+      inputString = "";
     }
-  }
-  procesarDatos();
+  }  
 } 
-void procesarDatos(){
-   if (stringComplete) {
-   // Serial.println(inputString); // Imprime el string completo
-    
-    // Variables para almacenar los valores X y Y
-    int vectorAmarilloX, vectorAmarilloY, vectorAzulX, vectorAzulY;
 
-    // Extraer los valores de los vectores del string
-    sscanf(inputString.c_str(), "YA:%d %d, BA:%d %d", &vectorAmarilloX, &vectorAmarilloY, &vectorAzulX, &vectorAzulY);
-
-    // Imprimir los valores para verificar
-    if(vectorAmarilloX == 0 && vectorAmarilloY == 0 || vectorAzulX == 0 && vectorAzulY == 0){
-      peligro = true;
-    }
-    else{
-      xAmarillo = vectorAmarilloX - 87;
-      yAmarillo = vectorAmarilloY - 120;
-      xAzul = vectorAzulX - 87;
-      yAzul = vectorAzulY - 120;
-      peligro = false;
-    }
-   // Serial.print("Vector Amarillo X: "); Serial.println(vectorAmarilloX);
-   // Serial.print("Vector Amarillo Y: "); Serial.println(vectorAmarilloY);
-   // Serial.print("Vector Azul X: "); Serial.println(vectorAzulX);
-    //Serial.print("Vector Azul Y: "); Serial.println(vectorAzulY);
-
-    // Limpia la cadena para el próximo mensaje y resetea el indicador de string completo
-    inputString = "";
-    stringComplete = false;
-  }
-}
 
 void getImuInfo(){
   if(bno.getImpact()) //check if an high_g event occured (impact)
@@ -267,15 +264,6 @@ void sendToMotorController(int pwm, int orientationError, int movementIndicator,
     //Serial.println(pwmByte);
 }
 
-int traslado(){
-  int xCentro, yCentro, angCentro;
-  xCentro = xAzul + xAmarillo;
-  yCentro = yAzul + yAmarillo;
-  angCentro = atan2(yCentro, xCentro);
-  angCentro *= 180/3.1416 ;
-
-  return angCentro;
-}
 
 bool entroPorteria = false;
 
@@ -283,15 +271,16 @@ int ajusteAngulo(int x, int intensidad){
   int anguloModificado = x;
   int dis;
   dis = intensidad -750;
-  dis = constrain(dis,100,600);
+  dis = constrain(dis,300,750);
   if (globalAngle != 400){
     if(x < 180 && x > 10){
-      return x+110*dis/750;
+      return x+110*dis/900;
     }
     else if(x >= 180 && x < 350){
-      return x-90*dis/750;
+      return x-90*dis/900;
     }
     else {
+
       return 0;
     }
   }
@@ -300,69 +289,48 @@ int ajusteAngulo(int x, int intensidad){
   }
 }
 
+int errorPorteriaY(){
+  return yPorteria - setY;
 
-
+}
+int errorPorteriaX(){
+  return xPorteria - setX;
+}
+int reposicionY(int y){
+  if(y > 0 ){
+    return 0;
+  }
+  else{
+    return 180;
+  }
+}
 
 
 void jugar(){
   //Serial.print("pwm :"); Serial.println(sendPWM);
-
-  
-    if(angEsp == 200 && stop == 0){
-      sendToMotorController(sendPWM,ceroFake,0,ajusteAngulo(globalAngle,globalIntensity)/2); 
-    // Serial.print("mandado globalangle");
+  int errorY = errorPorteriaY();
+  if(errorY >! -1 && errorY <! 1){
+    sendToMotorController(pwm,ceroFake,0,reposicionY(errorY));
     }
-
-    else if(angEsp != 200 && stop == 0 && globalAngle <= 360 && globalAngle >= 0){
-      //angEsp = sumarAng(angEsp,*2);
-      sendToMotorController(sumarAng(globalAngle,angEsp)*150,ceroFake,0, angEsp);
-      //Serial.print("mandado esp");
-    }
-    else{
-      sendToMotorController(sendPWM,ceroFake,0, angEsp);
+  else{
+      sendToMotorController(atraparPWM(globalAngle),ceroFake,0,atraparAngulo(globalAngle));
       //Serial.print("mandado angEsp");
-    }
+  }
   
 }
-
-float sumarAng(int ang1, int  ang2){
-  int x ,  y;
-  x = cos(ang1*180/M_PI) + cos(ang2*180/M_PI);
-  y = sin(ang1*180/M_PI) + sin(ang2*180/M_PI);
-  //Serial.println(sqrt(pow(x,2) + pow(y,2)));
-  return sqrt(pow(x,2) + pow(y,2)) / 1.5;
-}
-
-void coordenadas(){
-  xCord = xAzul + xAmarillo;
-  yCord = yAzul + xAzul;
-  
-  //Serial.print("posicionX: "); Serial.println(xCord);
-  //Serial.print("posicionY: "); Serial.println(yCord);
+int atraparPWM(int angulo){
+  int multiplicador = sin(angulo);
+  return multiplicador * pwm;
   
 }
-void getPWM(){
-  //sendPWM = pwm - abs(xCord);
-  sendPWM = 100;
-}
-
-int getGoalAngle(){
-  float angleGoal1 = atan2(yAzul,xAzul);
-  float angleGoal2 = atan2(yAmarillo,xAmarillo);
-  angleGoal1 *= 180/3.1416;
-  angleGoal2 *= 180/3.1416;
- // Serial.print("azul: "); Serial.println(angleGoal1+90);
-  //Serial.print("amarillo: "); Serial.println(angleGoal2+90);
-  if(angleGoal1 < -90 && angleGoal1 > 90){
-  
-    return angleGoal1;
+int atraparAngulo(int angulo){
+  if(angulo >= 0 && angulo < 180){
+    return 90;
   }
   else{
-   
-    return angleGoal2;
+    return  270;
   }
 }
-
 void setup()
 {
   uartStart();
@@ -391,12 +359,12 @@ void loop()
 {
   getImuInfo();
   getUartInfo();
-  coordenadas();
+
   cero();
-  getPWM();
+
   //Serial.println(globalIntensity);
   //Serial.println(traslado());
-  //estado=2;
+  
   switch (estado){
     case 1: //setMode
       calibracionImu=IMU;
@@ -423,4 +391,21 @@ void loop()
      }
       break;
   }
+  /*if(angEsp == 200 && stop == 0){
+    sendToMotors(anguloIR,100,orientacion1,orientacion2, 0);    
+  }
+
+  else if(angEsp != 200 && stop == 0 && anguloIR <= 180 && anguloIR >= 0){
+    angEsp = sumarAng(angEsp,anguloIR*2);
+    sendToMotors(angEsp,100,orientacion1,orientacion2, 0);
+    
+  }
+  else{
+    sendToMotors(angEsp,100,orientacion1,orientacion2, 0);
+  }*/
+      
+  
+ 
+ //Serial.println(data5[0] * 2);
+
 }

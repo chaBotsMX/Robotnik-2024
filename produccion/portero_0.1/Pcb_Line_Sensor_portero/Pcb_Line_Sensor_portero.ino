@@ -1,7 +1,7 @@
 #include <Adafruit_NeoPixel.h>
-#include <elapsedMillis.h>
+#include<elapsedMillis.h>
 #define PIN        5
-#define NUMPIXELS 15 
+#define NUMPIXELS 15
 
 const size_t dataLength = 2;
 int data[dataLength]; 
@@ -20,36 +20,35 @@ int angulos [13]={
 
 int danger = 0;
 int angle = 0 , flag;
-int objetivo1, objetivo2;
 
 double cosx [12]={                                                                                                                  
   -1.0,
-  -0.8660254037844387,
-  -0.5000000000000001,
-  -6.123233995736766e-17,
-  0.4999999999999998,
-  0.8660254037844387,
+  -0.8660,
+  -0.5,
+  -0,
+  0.5,
+  0.8660,
   1.0,
-  0.8660254037844387,
-  0.5000000000000001,
-  6.123233995736766e-17,
-  -0.4999999999999998,
-  -0.8660254037844387
+  0.8660,
+  0.5,
+  0,
+  -0.5,
+  -0.8660
 };
 
 double sinx [12]={
   0.0,
-  0.49999999999999994
-  ,0.8660254037844386,
+  0.5,
+  0.8660,
   1.0,
-  0.8660254037844387,
-  0.49999999999999994, 
+  0.8660,
+  0.5, 
   0.0,
-  -0.49999999999999994,
-  -0.8660254037844386,
+  -0.5,
+  -0.8660,
   -1.0,
-  -0.8660254037844387,
-  -0.49999999999999994
+  -0.8660,
+  -0.5
 };
 
 int pines [12] = {
@@ -94,23 +93,15 @@ void loop() {
   flag = 0;
   for(int i=0; i<13; i++){
     int analog = analogRead(pines[i]);
-    //Serial.print(analog);
-    //Serial.print("\t");
-    if(i != 12 && analog > 150){
+    Serial.print(analog);
+    Serial.print("\t");
+    if(i != 12 && analog > 120){
       flag = 1;
       x1 = x1 + (sinx[i] );
       y1 = y1 + (cosx[i] );
 
 
     }
-  }
-  //sensores objetivos s14 y s7
-  //                   A14   A7
-  if(analogRead(A14) > 150){
-    objetivo1 = 1;
-  }
-  if(analogRead(A7) > 150){
-    objetivo2 = 1;
   }
   /*
   Serial.print(x1);
@@ -126,20 +117,56 @@ void loop() {
   }
   //Serial.println(angle);  
   //Serial.println(flag);
-  if(objetivo1 == 1 && objetivo2 == 1){
-    lastAngle = 500;
+  if (danger != 1){
+  if(flag == 1){
     writing = 0;
-  }  
-  else if(objetivo1 == 0 && objetivo2 == 0 && flag == 1){
+    if(side == 0){
     lastAngle = angle;
-    writing = 0;
-  }
+    side = 1; 
+    inicial = angle;
+    flagcounter = 0;
+    }
+    else if(flag == 1 && side == 1){
+      if(inicial - angle >= 90 || inicial - angle <= -90){
+        lastAngle = inicial;
+        flagcounter = 0;
+ 
+      }
+      else{
+        angle = lastAngle;
+        flagcounter = 0;
+      }
+    }
 
-  if(writing <= 50 ){
+  }
+  }
+  else {
+    if(side == 0){
+    lastAngle = 180;
+    inicial = 180;
+    flagcounter = 0;
+    side = 1;
+    }
+    else{
+      if(inicial <= 211 && inicial >= 149){
+        lastAngle = 180;
+        inicial = 180;
+        flagcounter = 0;
+        side = 1;
+      }
+      else{
+        flagcounter = 0;
+        side = 1;
+      }
+    }
+  }
+  if(writing <= 20){
     Serial1.write(lastAngle/2);
 
   }
-
+  else if(danger == 1){
+    Serial1.write(lastAngle/2);
+  }
   else{
     Serial1.write(200);
     Serial.println("cancha");
@@ -172,10 +199,10 @@ void loop2 (void* pvParameters){
     especial2 = analogRead(A18);
     especial3 = analogRead(A12);
     //Serial.println(especial3);
-    if(especial1 >150 || especial2 > 150){
-      flag = 1;
+    if(especial1 >150 || especial2 > 150 || especial3 > 150){
       danger = 1;
-      flagcounter = 0;
+      
+      Serial.print("peligro");
     }
     else{
       danger = 0;
