@@ -7,9 +7,7 @@ int pwm = 150;
 int sendPWM;
 int stop = 0;
 int angEsp = 200;
-int data1[2] = {0,0}; //Angulo de la pelota IR partido en 2 bytes
 
-int data5[5] = {0,0,0,0,0}; // byte 1 y 2 son para enviar el anguloIR de la pelota, 3 y 4 el offset del imu y el 5 para enviar el pwm maximo 
 int xCord, yCord;
 int pelota1 = 0, pelota2 = 0, orientacion1 = 0, orientacion2 = 0, anguloIR = 200; // declaramos los bytes para poder trabajar con ellos 
 
@@ -40,7 +38,7 @@ enum State {
 };
 String inputString = ""; 
 bool stringComplete = false;
-bool peligro = false;
+bool peligro = false;  
 // Variables globales para almacenar el ángulo e intensidad
 int globalAngle = 400;
 int globalIntensity = 0;
@@ -82,7 +80,7 @@ void getUartInfo(){
 
  if (Serial1.available() > 0) {
     byte incomingByte = Serial1.read();
-
+    //Serial.println("ir check");
     switch (currentState) {
       case WAIT_FOR_START:
         if (incomingByte == 255) {
@@ -145,11 +143,11 @@ void getUartInfo(){
           }
      
           globalIntensity=localIntensity;
-         // Serial.println(globalAngle);
+          //Serial.println(globalAngle);
           irTimer = 0;
         } else {
           // Fin de mensaje incorrecto, intenta resincronizar
-         // Serial.println("Fin de mensaje incorrecto, intentando resincronizar...");
+          //Serial.println("Fin de mensaje incorrecto, intentando resincronizar...");
         }
         currentState = WAIT_FOR_START; // Vuelve al inicio para recibir un nuevo mensaje
         break;
@@ -165,13 +163,15 @@ void getUartInfo(){
 
   if (Serial2.available())
   {
+   //Serial.println("m5stack check");
     estado = Serial2.read();
     //Serial.println(estado);
   }
   if(Serial3.available())
   {
+    //Serial.println("linea check");
     angEsp = Serial3.read();
-    //Serial.println(angEsp);
+   // Serial.println(angEsp);
   }
 
   openMVSetup();
@@ -179,7 +179,8 @@ void getUartInfo(){
 }
 
 void openMVSetup(){
- while (Serial4.available()) {
+ while (Serial4.available()){
+   // Serial.println("camara check");   
     char inChar = (char)Serial4.read(); // Lee el siguiente carácter disponible
     inputString += inChar; // Añade el carácter a la cadena
     if (inChar == '\n') { // Si el carácter es un salto de línea, marca el fin del mensaje
@@ -262,9 +263,9 @@ void sendToMotorController(int pwm, int orientationError, int movementIndicator,
     Serial5.write(angleToMoveByte);
     Serial5.write(checksum);
     Serial5.write(endMarker);
-    //Serial.println(orientationErrorByte);
-    //Serial.println(angleToMoveByte);
-    //Serial.println(pwmByte);
+    /*Serial.println(orientationErrorByte);
+    Serial.println(angleToMoveByte);
+    Serial.println(pwmByte);*/
 }
 
 int traslado(){
@@ -283,7 +284,6 @@ int ajusteAngulo(int x, int intensidad){
   int anguloModificado = x;
   int dis;
   dis = intensidad -750;
-  dis = constrain(dis,100,600);
   if (globalAngle != 400){
     if(x < 180 && x > 10){
       return x+110*dis/750;
@@ -309,17 +309,17 @@ void jugar(){
 
   
     if(angEsp == 200 && stop == 0){
-      sendToMotorController(sendPWM,ceroFake,0,ajusteAngulo(globalAngle,globalIntensity)/2); 
+      sendToMotorController(sendPWM,ceroFake,1,ajusteAngulo(globalAngle,globalIntensity)/2); 
     // Serial.print("mandado globalangle");
     }
 
     else if(angEsp != 200 && stop == 0 && globalAngle <= 360 && globalAngle >= 0){
       //angEsp = sumarAng(angEsp,*2);
-      sendToMotorController(sumarAng(globalAngle,angEsp)*150,ceroFake,0, angEsp);
+      sendToMotorController(sendPWM,ceroFake,1, angEsp);
       //Serial.print("mandado esp");
     }
     else{
-      sendToMotorController(sendPWM,ceroFake,0, angEsp);
+      sendToMotorController(sendPWM,ceroFake,1, angEsp);
       //Serial.print("mandado angEsp");
     }
   
@@ -343,7 +343,7 @@ void coordenadas(){
 }
 void getPWM(){
   //sendPWM = pwm - abs(xCord);
-  sendPWM = 100;
+  sendPWM = 110;
 }
 
 int getGoalAngle(){
@@ -394,7 +394,9 @@ void loop()
   coordenadas();
   cero();
   getPWM();
-  //Serial.println(globalIntensity);
+  Serial.print("angulo recibido: "); Serial.println(globalAngle);
+  Serial.print("intensidad recibida:"); Serial.println(globalIntensity);
+  Serial.print("trayectoria: "); Serial.println(ajusteAngulo(globalAngle,globalIntensity));
   //Serial.println(traslado());
   //estado=2;
   switch (estado){
@@ -406,21 +408,15 @@ void loop()
       jugar();
   
       break;
-
      case 3:
       Serial.println("calibrarJuanEnLaPista");
-      
+
       
       break;
-      case 254:
-        estado = 0;
-      break;
+      
     default:
-     // Serial.println("esperandoAJuan");
-     if(uart2timer > 50){
-     Serial2.write(globalAngle);
-     uart2timer = 0;
-     }
+      Serial.println("esperandoAJuan");
+     
       break;
   }
 }

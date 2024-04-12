@@ -27,6 +27,7 @@ int angulo(int x){
 }
 
 void setup() {
+  delay(5000);
   Serial.begin(115200);   //puerto serial para debugear
   Serial1.begin(57600);  //puerto serial para enviar informacion, pines GPIO 16 RX y GPIO 17 TX, al actualizar las librerias pueden cambiarse los pines
   delay(1000); // se da tiempo para iniciar el uart de forma correcta o puede que los relojes no se sincronicen

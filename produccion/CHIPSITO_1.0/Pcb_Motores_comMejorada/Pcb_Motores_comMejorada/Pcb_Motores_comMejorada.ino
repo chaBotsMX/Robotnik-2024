@@ -7,7 +7,7 @@ int angle = 400;
 int M1D1 = 0, M1D2 = 1, M2D1 = 3, M2D2 = 2, M3D1 = 5, M3D2 = 4, M4D1 = 6, M4D2 = 7; //pines de los motores
 double dir1, dir2, dir3, dir4, pow1, pow2, pow3, pow4, vel = 100; //variables usadas para calcular pwm de cada motor
 double IMUM; //offset del imu
-int wait = 0;
+int wait = 1;
 
 const byte startMarker = 0xFF;
 const byte endMarker = 0xFE;
@@ -287,7 +287,7 @@ void mover ( int angle){      ///////////Funcion para calcular en que direccion 
   Serial.print(angle);
   Serial.print(" ");
   Serial.println(IMUM);
-
+  if(wait == 1){
 
   if(angle != 400){
   dir1=angle+45;
@@ -323,7 +323,7 @@ void mover ( int angle){      ///////////Funcion para calcular en que direccion 
   pow4=pow4 + Output;
 
  
-
+/*
   Serial.print(pow1);
   Serial.print(" ");
   Serial.print(pow2);
@@ -332,7 +332,7 @@ void mover ( int angle){      ///////////Funcion para calcular en que direccion 
   Serial.print(" ");
   Serial.print(pow4);
   Serial.println("\n");
-  
+  */
   if( pow1 < 0 ){
 
     pow1=min( abs(pow1), vel);
@@ -383,7 +383,14 @@ void mover ( int angle){      ///////////Funcion para calcular en que direccion 
     motores(4, pow4);    
     
   }
-
+  }
+  else{
+  motor1( 0, 254);
+  motor2( 0, 254);
+  motor3( 0, 254);
+  motor4( 0, 254);
+  Serial.println("estoy parao");
+  }
 
 }
 
@@ -443,10 +450,9 @@ void loop() {
     stop(100); // Detiene los motores si no hay datos nuevos en 100 ms
   }
 
-  Serial.print(angle);
+  /*Serial.print(angle);
   Serial.print(" ");
   Serial.println(IMUM);
-  
-
+  */  
 }  
 

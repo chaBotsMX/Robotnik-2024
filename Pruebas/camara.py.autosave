@@ -19,7 +19,7 @@ sensor.set_auto_whitebal(False)
 
 uart = UART(1, 9600, timeout_char=1000)
 
-roi = (55, 0, 220, 220)
+roi = (55, 0, 230, 240)
 sensor.set_windowing(roi)
 sensor.skip_frames(time=1000)
 while True:

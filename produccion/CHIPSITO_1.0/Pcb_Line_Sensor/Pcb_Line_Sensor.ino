@@ -115,8 +115,8 @@ void loop() {
 
   for(int i=0; i<13; i++){
     int analog = analogRead(pines[i]);
-    Serial.print(analog);
-    Serial.print("\t");
+    //Serial.print(analog);
+    //Serial.print("\t");
     if(i != 12 && analog > calValues[i]){
       flag = 1;
       x1 = x1 + (sinx[i] );
@@ -125,13 +125,13 @@ void loop() {
 
     }
   }
-  
+  /*
   Serial.print(x1);
   Serial.print("\t");
 
   Serial.print(y1);
   Serial.println("\t");
-  
+  */
   angle = atan2(x1, y1)*180/M_PI;
 
   if(angle < 0 ){
@@ -150,7 +150,7 @@ void loop() {
     }
     else if(flag == 1 && side == 1){
       if(inicial - angle >= 90 || inicial - angle <= -90){
-        lastAngle = inicial;
+        lastAngle = angle;
         flagcounter = 0;
  
       }
@@ -196,7 +196,7 @@ void loop() {
 
   if(flagcounter >= 50)
   {
-    danger = 0;
+
     side = 0;
   }
 
@@ -209,14 +209,15 @@ void loop() {
   Serial.println(inicial);
   //Serial.println(xPortGetCoreID());*/
 
-  //delay(100);
+  delay(100);
   uartTimer = 0;
 
 }
 
 void loop2 (void* pvParameters){
   while (1){
- int especial1, especial2, especial3;
+  elapsedMillis peligro;
+  int especial1, especial2, especial3;
     especial1 = analogRead(A10);
     especial2 = analogRead(A18);
     especial3 = analogRead(A12);

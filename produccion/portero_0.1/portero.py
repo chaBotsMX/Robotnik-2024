@@ -5,7 +5,7 @@ from pyb import UART
 
 # Color Tracking Thresholds
 thresholds = [(43, 84, 12, 58, 39, 89),
-             (30, 55, -18, 26, -52, -19)]
+             (0, 100, -22, 127, -87, -16)]
 
 sensor.reset()
 sensor.set_pixformat(sensor.RGB565)

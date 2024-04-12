@@ -1,9 +1,6 @@
 #include <Wire.h>
 #include <BohleBots_BNO055.h>
-//declaramos el tamaño de los array a enviar, son 5, pero para organizar los declaramos cuando se necesiten
-const size_t dataLength1 = 2;
-const size_t dataLength5 = 5;
-int pwm = 100;
+int pwm = 150;
 int sendPWM;
 int stop = 0;
 int angEsp = 200;
@@ -26,7 +23,7 @@ int estado, intensidad = 0;
 int calibracionImu;
 
 int ceroFake;
-int setX, setY;
+int setX = 100, setY = 63;
 int xPorteria,  yPorteria;
 int communicationMV = 1;
 enum State {
@@ -38,6 +35,10 @@ enum State {
   READ_CHECKSUM,
   WAIT_FOR_END
 };
+
+const int TAMANO_DATOS = 3;
+int datos[TAMANO_DATOS];
+
 String inputString = ""; 
 bool stringComplete = false;
 bool peligro = false;
@@ -48,11 +49,11 @@ int localAngle = 0;
 int localIntensity=0;
 // Estado inicial
 State currentState = WAIT_FOR_START;
-
+int xMax = 145, xMin = 75 ;
 // Variable para calcular el checksum
 byte calculatedChecksum = 0;
 
-
+int mover = 1;
 BNO bno;  //create bno from the Class BNO
 
 elapsedMillis stopTimer;
@@ -145,7 +146,7 @@ void getUartInfo(){
           }
      
           globalIntensity=localIntensity;
-         // Serial.println(globalAngle);
+         //Serial.print("angulo global: ");Serial.println(globalAngle);
           irTimer = 0;
         } else {
           // Fin de mensaje incorrecto, intenta resincronizar
@@ -158,7 +159,7 @@ void getUartInfo(){
   else{
     if(irTimer > 5){
     globalAngle= 400;
-    //Serial.println(globalAngle);
+    Serial.println("no hay ir");
     }
   }
 
@@ -180,6 +181,7 @@ void getUartInfo(){
 
 void openMVSetup(){
 static String inputString = "";  // Un String para acumular los caracteres recibidos
+  //Serial.println("intentando comunicar");
   while (Serial4.available()) {
     char inChar = (char)Serial4.read();
     inputString += inChar;
@@ -189,8 +191,8 @@ static String inputString = "";  // Un String para acumular los caracteres recib
       inputString.trim();  // Elimina espacios en blanco y el salto de línea
 
       // Aquí procesas el mensaje
-      Serial.print("Recibido: ");
-      Serial.println(inputString);
+     // Serial.print("Recibido: ");
+      //Serial.println(inputString);
 
       // Divide el string por la coma para extraer X e Y
       int commaIndex = inputString.indexOf(',');
@@ -215,7 +217,28 @@ static String inputString = "";  // Un String para acumular los caracteres recib
     }
   }  
 } 
+void llenarDatos() {
+  datos[0] = bno._calibData.acc;
+  datos[1] = bno._calibData.gyr;
+  datos[2] = bno._calibData.mag;
+  enviarDatosUART2();
+}
 
+void enviarDatosUART2(){
+  // Crea un string para almacenar los datos
+  String mensaje = "";
+
+  // Agrega cada entero al string, separado por comas
+  for (int i = 0; i < TAMANO_DATOS; i++) {
+    mensaje += String(datos[i]);
+    if (i < TAMANO_DATOS - 1) {
+      mensaje += ",";
+    }
+  }
+
+  // Envía el string completo a través de UART2
+  Serial2.println(mensaje);
+}
 
 void getImuInfo(){
   if(bno.getImpact()) //check if an high_g event occured (impact)
@@ -259,9 +282,9 @@ void sendToMotorController(int pwm, int orientationError, int movementIndicator,
     Serial5.write(angleToMoveByte);
     Serial5.write(checksum);
     Serial5.write(endMarker);
-    //Serial.println(orientationErrorByte);
-    //Serial.println(angleToMoveByte);
-    //Serial.println(pwmByte);
+   /* Serial.print("IMU: ");Serial.println(orientationErrorByte);
+    Serial.print("Angulo: ");Serial.println(angleToMoveByte);
+    Serial.print("pwm: ");Serial.println(pwmByte);*/
 }
 
 
@@ -290,6 +313,7 @@ int ajusteAngulo(int x, int intensidad){
 }
 
 int errorPorteriaY(){
+  //Serial.print("error y: "); Serial.println(yPorteria-setY);
   return yPorteria - setY;
 
 }
@@ -309,30 +333,79 @@ int reposicionY(int y){
 void jugar(){
   //Serial.print("pwm :"); Serial.println(sendPWM);
   int errorY = errorPorteriaY();
-  if(errorY >! -1 && errorY <! 1){
-    sendToMotorController(pwm,ceroFake,0,reposicionY(errorY));
+  if(errorY < -2){
+    sendToMotorController(reposicionPWM(errorY),ceroFake,1,0);
     }
+  else if(errorY > 8){
+    sendToMotorController(reposicionPWM(errorY),ceroFake,1,90);
+  }
+  else if(xPorteria > 140){
+    sendToMotorController(150,ceroFake,1,135);
+  }
+  else if(xPorteria < 62){
+    sendToMotorController(150,ceroFake,1,45);
+
+  }
   else{
-      sendToMotorController(atraparPWM(globalAngle),ceroFake,0,atraparAngulo(globalAngle));
+    sendToMotorController(atraparPWM(globalAngle),ceroFake,mover,atraparAngulo(globalAngle)/2);
       //Serial.print("mandado angEsp");
   }
   
 }
-int atraparPWM(int angulo){
-  int multiplicador = sin(angulo);
-  return multiplicador * pwm;
+int reposicionPWM(int error){
+  if(error < 0 ){
+  error = abs(error);
+  error = error*5 +50;
+  return constrain(error,60,90);
+  }
+  else{
+  error = abs(error);
+    error = error*5 +50;
+    return constrain(error,50,130);
+  }
+}
+
+int atraparPWM(float angulo){
+  if(angulo >= 0 && angulo <= 180){
+    angulo = angulo*3.1415 / 180;
+    angulo = sin(angulo) * pwm;
+    return (int) fabs(angulo); 
+  }
+  else{
+    angulo = angulo*3.1415 / 180;
+    angulo = sin(angulo) * pwm + 15;
+    return (int) fabs(angulo); 
+  }
   
 }
 int atraparAngulo(int angulo){
-  if(angulo >= 0 && angulo < 180){
+  if(angulo >= 20 && angulo < 180){
+    if(xPorteria  > xMax - 15 ){
+      mover = 0;
+    }
+      else{
+        mover = 1;
+      }
     return 90;
   }
-  else{
+  else if(angulo >= 180 && angulo < 340){
+    if(xPorteria  < xMin + 15){
+      mover = 0;
+    }
+      else{
+        mover = 1;
+      }
+    
     return  270;
+  }
+  else{
+    mover = 0;
+    return 0;
   }
 }
 void setup()
 {
+  delay(2000);
   uartStart();
   Wire.begin();   //inicia i2C 
   delay(10); //tiempo para que se inicialize i2c
@@ -357,6 +430,7 @@ void setup()
 int semaforo = 0;
 void loop()
 {
+  
   getImuInfo();
   getUartInfo();
 
@@ -364,7 +438,7 @@ void loop()
 
   //Serial.println(globalIntensity);
   //Serial.println(traslado());
-  
+  //estado = 2; 
   switch (estado){
     case 1: //setMode
       calibracionImu=IMU;
@@ -377,16 +451,21 @@ void loop()
 
      case 3:
       Serial.println("calibrarJuanEnLaPista");
-      
-      
+      bno.serialPrintCalibStat();
+      if(uart2timer > 100){
+      llenarDatos();
+     uart2timer = 0;
+      }
       break;
       case 254:
         estado = 0;
       break;
     default:
      // Serial.println("esperandoAJuan");
-     if(uart2timer > 50){
-     Serial2.write(globalAngle);
+     delay(100);
+     bno.serialPrintCalibStat();
+     if(uart2timer > 100){
+     llenarDatos();
      uart2timer = 0;
      }
       break;
